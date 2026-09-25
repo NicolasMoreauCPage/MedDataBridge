@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse
 from sqlmodel import Session, select, func
 
 from app.db import get_session
+from app.dependencies.request_data import read_form_data
 from app.utils.flash import flash
 from app.models_structure import EntiteGeographique, LocationStatus, LocationMode
 from app.models_structure import Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
@@ -27,7 +28,7 @@ def new_entite_geographique_form(
     )
 
 @router.post("/{context_id}/ej/{ej_id}/eg/new")
-async def create_entite_geographique(
+def create_entite_geographique(
     request: Request,
     context_id: int,
     ej_id: int,
@@ -40,6 +41,7 @@ async def create_entite_geographique(
     mode: str = Form(LocationMode.INSTANCE.value),
     physical_type: Optional[str] = Form(None),
     session: Session = Depends(get_session),
+    form_data=Depends(read_form_data),
 ):
     context = get_context_or_404(session, context_id)
     entite = get_ej_or_404(session, context, ej_id)
@@ -49,7 +51,7 @@ async def create_entite_geographique(
         flash(request, "Nom, Identifiant et FINESS sont obligatoires.", "error")
         return templates.TemplateResponse(
             request, "eg_form.html",
-            {"context": context, "entite": entite, "geo": None, "form_data": await request.form()},
+            {"context": context, "entite": entite, "geo": None, "form_data": form_data},
             status_code=400,
         )
     
@@ -58,7 +60,7 @@ async def create_entite_geographique(
         flash(request, "Un site géographique avec cet identifiant existe déjà.", "error")
         return templates.TemplateResponse(
             request, "eg_form.html",
-            {"context": context, "entite": entite, "geo": None, "form_data": await request.form()},
+            {"context": context, "entite": entite, "geo": None, "form_data": form_data},
             status_code=400,
         )
 

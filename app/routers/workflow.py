@@ -164,7 +164,7 @@ def workflow_view(
     )
 
 @router.post("/{venue_id}/mouvement")
-async def create_mouvement(
+def create_mouvement(
     venue_id: int,
     event_code: str = Form(...),
     movement_datetime: str = Form(None),
@@ -355,7 +355,7 @@ async def create_mouvement(
     session.add(venue)
     
     session.add(mouvement)
-    await emit_on_create(mouvement, "mouvement", session)
+    emit_on_create(mouvement, "mouvement", session)
     session.commit()
     
     # Rediriger vers la page du workflow avec message de succès

@@ -52,8 +52,7 @@ def list_services(
         )
     
     services = session.exec(query.order_by(Service.name)).all()
-    if apply_scheduled_status(services):
-        session.commit()
+    apply_scheduled_status(services)
     
     poles = session.exec(select(Pole).order_by(Pole.name)).all()
     pole_map = {pole.id: pole.name for pole in poles}
@@ -95,8 +94,7 @@ def list_services_api(
         skip=skip,
         limit=limit,
     )
-    if apply_scheduled_status(services):
-        session.commit()
+    apply_scheduled_status(services)
     return services
 
 @api_router.get("/services/{service_id}")
@@ -293,12 +291,9 @@ def list_unites_fonctionnelles(
         )
 
     ufs = session.exec(query.order_by(UniteFonctionnelle.name)).all()
-    changed = apply_scheduled_status(ufs)
+    apply_scheduled_status(ufs)
     services = session.exec(select(Service).order_by(Service.name)).all()
-    if apply_scheduled_status(services):
-        changed = True
-    if changed:
-        session.commit()
+    apply_scheduled_status(services)
     service_map = {service.id: service.name for service in services}
 
     return get_templates_with_filters(request).TemplateResponse(
@@ -337,8 +332,7 @@ def list_unites_fonctionnelles_api(
         skip=skip,
         limit=limit,
     )
-    if apply_scheduled_status(ufs):
-        session.commit()
+    apply_scheduled_status(ufs)
     return ufs
 
 @api_router.get("/ufs/{uf_id}")

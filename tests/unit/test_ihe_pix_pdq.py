@@ -1,5 +1,4 @@
 """Tests des profils IHE PIX/PDQ et FHIR PIXm/PDQm."""
-import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 from datetime import datetime
@@ -7,7 +6,6 @@ from datetime import datetime
 from app.models import Patient
 from app.models_identifiers import Identifier, IdentifierType
 from app.models_endpoints import MessageLog, SystemEndpoint
-from app.services.pix_pdq_manager import PIXPDQManager
 
 def test_pix_query(client: TestClient, session: Session):
     """Test d'une requête PIX (QBP^Q23)."""
@@ -121,7 +119,7 @@ def test_pdq_query(client: TestClient, session: Session):
     assert "DUPONT^Jean" in response.text
     assert "DUPONT^Marie" not in response.text
     
-    # Vérifier les logs
+    # PDQm est une lecture FHIR : elle ne doit pas créer de MessageLog.
     logs = session.exec(
         select(MessageLog)
         .where(MessageLog.kind == "PDQ")
@@ -291,8 +289,7 @@ def test_pdqm_search(client: TestClient, session: Session):
         .where(MessageLog.kind == "PDQm")
         .order_by(MessageLog.created_at)
     ).all()
-    assert len(logs) == 4  # Un log par requête
-    assert all(log.status == "processed" for log in logs)
+    assert logs == []
 
 def test_error_handling(client: TestClient, session: Session):
     """Test de la gestion des erreurs pour PIX/PDQ/PIXm/PDQm."""

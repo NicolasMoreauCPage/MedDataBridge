@@ -1,4 +1,6 @@
 """Points d'entrée légers pour superviser les tests d'interfaces."""
+
+import asyncio
 from dataclasses import asdict
 from typing import Optional
 from urllib.parse import quote_plus
@@ -127,7 +129,7 @@ async def interface_testing_metrics() -> dict:
 
 
 @router.post("/qualification/runs")
-async def start_qualification_run(
+def start_qualification_run(
     payload: QualificationRunRequest,
     session: Session = Depends(get_session),
 ) -> dict:
@@ -143,7 +145,9 @@ async def start_qualification_run(
     if not endpoint:
         raise HTTPException(status_code=404, detail="Endpoint introuvable")
     try:
-        result = await run_qualification(session, scenario, endpoint, dry_run=payload.dry_run)
+        result = asyncio.run(
+            run_qualification(session, scenario, endpoint, dry_run=payload.dry_run)
+        )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     run = session.get(ScenarioExecutionRun, result["run_id"])
@@ -151,7 +155,9 @@ async def start_qualification_run(
 
 
 @router.get("/qualification/runs/{run_id}")
-def qualification_run_detail(run_id: int, session: Session = Depends(get_session)) -> dict:
+def qualification_run_detail(
+    run_id: int, session: Session = Depends(get_session)
+) -> dict:
     run = session.get(ScenarioExecutionRun, run_id)
     if not run:
         raise HTTPException(status_code=404, detail="Exécution introuvable")
@@ -164,13 +170,19 @@ def create_qualification_campaign(
     session: Session = Depends(get_session),
 ) -> dict:
     """Crée une campagne ordonnée de scénarios/endpoints."""
-    if session.exec(select(QualificationCampaign).where(QualificationCampaign.key == payload.key)).first():
+    if session.exec(
+        select(QualificationCampaign).where(QualificationCampaign.key == payload.key)
+    ).first():
         raise HTTPException(status_code=409, detail="Cette clé de campagne existe déjà")
     for item in payload.items:
         if not session.get(InteropScenario, item.scenario_id):
-            raise HTTPException(status_code=404, detail=f"Scénario {item.scenario_id} introuvable")
+            raise HTTPException(
+                status_code=404, detail=f"Scénario {item.scenario_id} introuvable"
+            )
         if not session.get(SystemEndpoint, item.endpoint_id):
-            raise HTTPException(status_code=404, detail=f"Endpoint {item.endpoint_id} introuvable")
+            raise HTTPException(
+                status_code=404, detail=f"Endpoint {item.endpoint_id} introuvable"
+            )
 
     campaign = QualificationCampaign(
         key=payload.key,
@@ -192,11 +204,13 @@ def create_qualification_campaign(
             )
         )
     session.commit()
-    return jsonable_encoder({"id": campaign.id, "key": campaign.key, "items": len(payload.items)})
+    return jsonable_encoder(
+        {"id": campaign.id, "key": campaign.key, "items": len(payload.items)}
+    )
 
 
 @router.post("/qualification/campaigns/{campaign_id}/runs")
-async def start_campaign_run(
+def start_campaign_run(
     campaign_id: int,
     dry_run: bool = True,
     session: Session = Depends(get_session),
@@ -206,7 +220,7 @@ async def start_campaign_run(
         raise HTTPException(status_code=404, detail="Campagne introuvable")
     if not campaign.is_active:
         raise HTTPException(status_code=409, detail="Campagne désactivée")
-    campaign_run = await run_campaign(session, campaign, dry_run=dry_run)
+    campaign_run = asyncio.run(run_campaign(session, campaign, dry_run=dry_run))
     return jsonable_encoder(
         {
             "id": campaign_run.id,
@@ -221,7 +235,9 @@ async def start_campaign_run(
 
 
 @router.get("/qualification/campaign-runs/{campaign_run_id}")
-def campaign_run_detail(campaign_run_id: int, session: Session = Depends(get_session)) -> dict:
+def campaign_run_detail(
+    campaign_run_id: int, session: Session = Depends(get_session)
+) -> dict:
     campaign_run = session.get(QualificationCampaignRun, campaign_run_id)
     if not campaign_run:
         raise HTTPException(status_code=404, detail="Exécution de campagne introuvable")
@@ -246,28 +262,44 @@ def interface_testing_ui(request: Request, session: Session = Depends(get_sessio
     context = _ui_context(request, session)
     context["message"] = request.query_params.get("message")
     context["error"] = request.query_params.get("error")
-    return request.app.state.templates.TemplateResponse(request, "qualification_dashboard.html", context)
+    return request.app.state.templates.TemplateResponse(
+        request, "qualification_dashboard.html", context
+    )
 
 
 @ui_router.post("/runs")
-async def start_ui_qualification_run(
+def start_ui_qualification_run(
     scenario_id: int = Form(...),
     endpoint_id: int = Form(...),
     dry_run: bool = Form(False),
     session: Session = Depends(get_session),
 ) -> RedirectResponse:
-    scenario, endpoint = session.get(InteropScenario, scenario_id), session.get(SystemEndpoint, endpoint_id)
+    scenario, endpoint = (
+        session.get(InteropScenario, scenario_id),
+        session.get(SystemEndpoint, endpoint_id),
+    )
     if not scenario or not endpoint:
-        return RedirectResponse(url="/ui/interface-testing?error=Scénario+ou+endpoint+introuvable", status_code=303)
+        return RedirectResponse(
+            url="/ui/interface-testing?error=Scénario+ou+endpoint+introuvable",
+            status_code=303,
+        )
     try:
-        result = await run_qualification(session, scenario, endpoint, dry_run=dry_run)
+        result = asyncio.run(
+            run_qualification(session, scenario, endpoint, dry_run=dry_run)
+        )
     except ValueError as exc:
-        return RedirectResponse(url=f"/ui/interface-testing?error={quote_plus(str(exc))}", status_code=303)
-    return RedirectResponse(url=f"/ui/interface-testing/runs/{result['run_id']}", status_code=303)
+        return RedirectResponse(
+            url=f"/ui/interface-testing?error={quote_plus(str(exc))}", status_code=303
+        )
+    return RedirectResponse(
+        url=f"/ui/interface-testing/runs/{result['run_id']}", status_code=303
+    )
 
 
 @ui_router.get("/runs/{run_id}", response_class=HTMLResponse)
-def ui_qualification_run_detail(run_id: int, request: Request, session: Session = Depends(get_session)):
+def ui_qualification_run_detail(
+    run_id: int, request: Request, session: Session = Depends(get_session)
+):
     run = session.get(ScenarioExecutionRun, run_id)
     if not run:
         raise HTTPException(status_code=404, detail="Exécution introuvable")
@@ -300,10 +332,20 @@ def create_ui_campaign(
     profile: str = Form("IHE_PAM_FR"),
     session: Session = Depends(get_session),
 ) -> RedirectResponse:
-    if session.exec(select(QualificationCampaign).where(QualificationCampaign.key == key)).first():
-        return RedirectResponse(url="/ui/interface-testing?error=Clé+de+campagne+déjà+utilisée", status_code=303)
-    if not session.get(InteropScenario, scenario_id) or not session.get(SystemEndpoint, endpoint_id):
-        return RedirectResponse(url="/ui/interface-testing?error=Scénario+ou+endpoint+introuvable", status_code=303)
+    if session.exec(
+        select(QualificationCampaign).where(QualificationCampaign.key == key)
+    ).first():
+        return RedirectResponse(
+            url="/ui/interface-testing?error=Clé+de+campagne+déjà+utilisée",
+            status_code=303,
+        )
+    if not session.get(InteropScenario, scenario_id) or not session.get(
+        SystemEndpoint, endpoint_id
+    ):
+        return RedirectResponse(
+            url="/ui/interface-testing?error=Scénario+ou+endpoint+introuvable",
+            status_code=303,
+        )
     campaign = QualificationCampaign(key=key, name=name, profile=profile)
     session.add(campaign)
     session.commit()
@@ -317,17 +359,23 @@ def create_ui_campaign(
         )
     )
     session.commit()
-    return RedirectResponse(url="/ui/interface-testing?message=Campagne+créée", status_code=303)
+    return RedirectResponse(
+        url="/ui/interface-testing?message=Campagne+créée", status_code=303
+    )
 
 
 @ui_router.post("/campaigns/{campaign_id}/runs")
-async def start_ui_campaign_run(
+def start_ui_campaign_run(
     campaign_id: int,
     dry_run: bool = Form(False),
     session: Session = Depends(get_session),
 ) -> RedirectResponse:
     campaign = session.get(QualificationCampaign, campaign_id)
     if not campaign:
-        return RedirectResponse(url="/ui/interface-testing?error=Campagne+introuvable", status_code=303)
-    await run_campaign(session, campaign, dry_run=dry_run)
-    return RedirectResponse(url="/ui/interface-testing?message=Campagne+exécutée", status_code=303)
+        return RedirectResponse(
+            url="/ui/interface-testing?error=Campagne+introuvable", status_code=303
+        )
+    asyncio.run(run_campaign(session, campaign, dry_run=dry_run))
+    return RedirectResponse(
+        url="/ui/interface-testing?message=Campagne+exécutée", status_code=303
+    )

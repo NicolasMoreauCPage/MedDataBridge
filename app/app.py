@@ -35,15 +35,24 @@ from app.middleware.version import VersionMiddleware
 from app.middleware.error_handler import ErrorHandlingMiddleware, RequestLoggingMiddleware
 from app.metrics import MetricsMiddleware
 
-from app.db import migrate_database, engine
+from app.db import (
+    create_database_engine,
+    engine,
+    get_session as database_session_dependency,
+    make_session_dependency,
+    make_session_factory,
+    migrate_database,
+)
 from app import models_scenarios  # noqa: F401 - ORM registry
 from app.admin import register_admin_views  # SQLAdmin views
-from app.db_session_factory import session_factory
+from app.db_session_factory import get_session as compatibility_session_dependency
+from app.db_session_factory import session_factory as default_session_factory
 from app.services.transport_inbound import on_message_inbound
 from app.services.mllp_manager import MLLPManager
 from app.services.entity_events import register_entity_events
 from app.services.entity_events_structure import register_structure_entity_events
-from app.services.scheduler import start_scheduler, stop_scheduler
+from app.services.scheduler import BackgroundScheduler
+from app.services.cache_service import create_cache_service
 from app import runners as runners_module
 
 
@@ -71,12 +80,50 @@ from app.logging_config import setup_logging
 
 logger = logging.getLogger(__name__)
 
-# Instance unique du manager et publication via app.state
-# - `session_factory` fournit des sessions DB courtes et sûres côté workers.
-# - `on_message_inbound` est appelé pour chaque message entrant HL7.
-mllp_manager = MLLPManager(session_factory=session_factory, on_message=on_message_inbound)
 
-def make_lifespan(runtime_settings: Settings):
+def _mount_sqladmin(application: FastAPI, database_engine, app_settings: Settings) -> None:
+    """Monte SQLAdmin sur l'instance et le moteur qui lui appartiennent."""
+    from sqladmin.authentication import AuthenticationBackend
+    from app.auth import authenticate_user
+
+    class SqlAdminAuthBackend(AuthenticationBackend):
+        async def login(self, request: Request) -> bool:
+            form = await request.form()
+            user = authenticate_user(
+                str(form.get("username", "")).strip(),
+                str(form.get("password", "")),
+            )
+            if not user or "admin" not in user.roles:
+                return False
+            request.session["sqladmin_user"] = user.username
+            return True
+
+        async def logout(self, request: Request) -> bool:
+            request.session.pop("sqladmin_user", None)
+            return True
+
+        async def authenticate(self, request: Request) -> bool:
+            return bool(request.session.get("sqladmin_user"))
+
+    admin = Admin(
+        application,
+        database_engine,
+        base_url="/sqladmin",
+        title="PAMélia - Admin SQL",
+        templates_dir=os.path.join(os.path.dirname(__file__), "templates"),
+        authentication_backend=SqlAdminAuthBackend(secret_key=app_settings.secret_key),
+    )
+    register_admin_views(admin)
+    application.state.sqladmin = admin
+
+
+def make_lifespan(
+    runtime_settings: Settings,
+    *,
+    runtime_session_factory,
+    mllp_manager: MLLPManager,
+    scheduler: BackgroundScheduler,
+):
     """Construit un cycle de vie lié à la configuration de cette application."""
 
     @asynccontextmanager
@@ -111,45 +158,67 @@ def make_lifespan(runtime_settings: Settings):
         # next(get_session()) leaves the generator open and can cause the
         # underlying context manager to never exit, producing transaction
         # state errors like 'cannot rollback - no transaction is active'.
-            with session_factory() as sess:
+            with runtime_session_factory() as sess:
             # Initialiser les vocabulaires si demandé
                 if os.getenv("INIT_VOCAB", "0") in ("1", "true", "True"):
                     from app.vocabularies.init import init_vocabularies
-                    try:
-                        init_vocabularies(sess)
-                        logging.info("Vocabulaires initialisés")
-                    except Exception as e:
-                        logging.error(f"Erreur initialisation vocabulaires: {e}")
+                    init_vocabularies(sess)
+                    logging.info("Vocabulaires initialisés")
 
             # Démarrer les serveurs MLLP pour tous les endpoints configurés
-                try:
-                    await mllp_manager.reload_all(sess)
-                    logging.info("Serveurs MLLP démarrés")
-                except Exception as e:
-                    logging.error(f"Erreur lors du démarrage des serveurs MLLP: {e}")
-                    logging.warning("L'application continue sans les serveurs MLLP")
+                await mllp_manager.reload_all(sess)
+                logging.info("Serveurs MLLP démarrés")
         
         # Démarrer le scheduler pour le polling des endpoints FILE
         # Par défaut: 60 secondes (1 minute). Configurable via FILE_POLL_INTERVAL
-            poll_interval = runtime_settings.file_poll_interval
-            await start_scheduler(poll_interval)
-            logging.info(f"File endpoint polling started (interval: {poll_interval}s)")
+            await scheduler.start()
+            logging.info(
+                "File endpoint polling started (interval: %ss)",
+                runtime_settings.file_poll_interval,
+            )
 
         try:
             yield
         finally:
             if not testing:
-                await stop_scheduler()
+                await scheduler.stop()
                 await mllp_manager.stop_all()
     return lifespan
 
 def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     """Crée une application indépendante à partir de réglages validés."""
     app_settings = runtime_settings or settings
+    runtime_engine = engine if runtime_settings is None else create_database_engine(app_settings)
+    runtime_session_factory = (
+        default_session_factory
+        if runtime_settings is None
+        else make_session_factory(runtime_engine)
+    )
+    runtime_session_dependency = (
+        database_session_dependency
+        if runtime_settings is None
+        else make_session_dependency(runtime_engine)
+    )
+    mllp_manager = MLLPManager(
+        session_factory=runtime_session_factory,
+        on_message=on_message_inbound,
+        testing=app_settings.testing,
+    )
+    scheduler = BackgroundScheduler(
+        app_settings.file_poll_interval,
+        session_factory_provider=runtime_session_factory,
+        testing=app_settings.testing,
+    )
+    runtime_cache = create_cache_service(enabled=not app_settings.testing)
     app = FastAPI(
         title=app_settings.app_name,
         version=app_settings.app_version,
-        lifespan=make_lifespan(app_settings),
+        lifespan=make_lifespan(
+            app_settings,
+            runtime_session_factory=runtime_session_factory,
+            mllp_manager=mllp_manager,
+            scheduler=scheduler,
+        ),
         docs_url="/api/docs",
         redoc_url="/api/redoc",
         openapi_url="/api/openapi.json",
@@ -160,6 +229,11 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     # du même contrat.
     from app.utils.error_handling import register_exception_handlers
     register_exception_handlers(app)
+
+    # Tous les routeurs existants continuent de référencer la dépendance
+    # historique. Les overrides les relient au moteur propre à cette instance.
+    app.dependency_overrides[database_session_dependency] = runtime_session_dependency
+    app.dependency_overrides[compatibility_session_dependency] = runtime_session_dependency
 
     logger.info("\nFastAPI app initialization")
 
@@ -234,6 +308,10 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     # Store version from settings
     app.state.version = app_settings.app_version
     app.state.settings = app_settings
+    app.state.engine = runtime_engine
+    app.state.session_factory = runtime_session_factory
+    app.state.scheduler = scheduler
+    app.state.cache = runtime_cache
 
     # Servir les fichiers statiques (CSS/JS)
     static_dir = str(Path(__file__).parent / "static")
@@ -283,22 +361,22 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     from sqlalchemy import text
 
     @app.get("/health")
-    async def health_check():
+    def health_check():
         """Health check endpoint for load balancers and monitoring"""
-        from app.db import get_db_health
-        from app.services.cache_service import get_cache_service
         import logging
         logger = logging.getLogger(__name__)
 
         try:
             # Test database connection
-            db_health = get_db_health()
-            if db_health.get("status") != "healthy":
-                raise Exception(f"Database unhealthy: {db_health}")
+            with runtime_session_factory() as health_session:
+                health_session.execute(text("SELECT 1"))
+            db_health = {
+                "status": "healthy",
+                "database_type": runtime_engine.dialect.name,
+            }
 
             # Test cache
-            cache = get_cache_service()
-            cache_stats = cache.get_stats()
+            cache_stats = app.state.cache.get_stats()
 
             return {
                 "status": "healthy",
@@ -312,29 +390,54 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
             raise HTTPException(status_code=503, detail=f"Service unhealthy: {str(e)}")
 
     @app.get("/health/db")
-    async def database_health():
+    def database_health():
         """Detailed database health check for the configured SQL backend."""
         try:
             # ``session_factory`` returns a synchronous SQLModel session.  The
             # previous async context manager made this probe fail systematically
             # (``__aenter__``) on the default SQLite deployment.
-            with session_factory() as session:
-                if engine.dialect.name == "sqlite":
+            with runtime_session_factory() as session:
+                if runtime_engine.dialect.name == "sqlite":
                     result = session.execute(text("SELECT sqlite_version()"))
                     database_type = "sqlite"
                 else:
                     result = session.execute(text("SELECT version()"))
-                    database_type = engine.dialect.name
+                    database_type = runtime_engine.dialect.name
                 version = result.scalar()
 
             return {
                 "status": "healthy",
                 "database_type": database_type,
                 "version": version,
-                "connection_pool": engine.pool.status(),
+                "connection_pool": runtime_engine.pool.status(),
             }
         except Exception as e:
             raise HTTPException(status_code=503, detail=f"Database unhealthy: {str(e)}")
+
+    @app.get("/ready")
+    def readiness_check():
+        """Vérifie les dépendances nécessaires avant de recevoir du trafic."""
+        try:
+            with runtime_session_factory() as ready_session:
+                ready_session.execute(text("SELECT 1"))
+        except Exception as exc:
+            raise HTTPException(
+                status_code=503,
+                detail={"status": "not_ready", "database": str(exc)},
+            ) from exc
+
+        scheduler_ready = app_settings.testing or scheduler.running
+        if not scheduler_ready:
+            raise HTTPException(
+                status_code=503,
+                detail={"status": "not_ready", "scheduler": "stopped"},
+            )
+        return {
+            "status": "ready",
+            "database": runtime_engine.dialect.name,
+            "scheduler": "disabled-for-tests" if app_settings.testing else "running",
+            "mllp_listeners": len(mllp_manager.running_ids()),
+        }
 
     @app.get("/metrics")
     async def metrics_endpoint():
@@ -466,16 +569,18 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     # HPRIM CCAM integration (stub router)
     try:
         from app.routers import ccam
+        from app.api import ccam as ccam_api
         from app.api import hprim_ccam
         from app.api import hprim_messages as hprim_messages_api
         app.include_router(ccam.router)
+        app.include_router(ccam_api.router)
         app.include_router(hprim_ccam.router)
         app.include_router(hprim_messages_api.router)
         logger.info(" - HPRIM CCAM router mounted at /ccam")
         logger.info(" - HPRIM CCAM API router mounted at /api/hprim/actes/ccam")
         logger.info(" - HPRIM Messages API router mounted at /api/hprim/messages")
     except Exception as e:
-        logging.getLogger(__name__).warning(f"HPRIM CCAM router not available: {e}")
+        raise RuntimeError("Required HPRIM CCAM capability failed to load") from e
     
     
     # HPRIM UCD router
@@ -489,7 +594,7 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         logger.info(" - HPRIM NGAP router mounted at /api/hprim/actes/ngap")
         logger.info(" - HPRIM UCD routers mounted")
     except Exception as e:
-        logging.getLogger(__name__).warning(f"HPRIM NGAP/UCD routers not available: {e}")
+        raise RuntimeError("Required HPRIM NGAP/UCD capability failed to load") from e
     
     # HPRIM LPP router
     try:
@@ -499,35 +604,47 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         app.include_router(lpp_router.router)
         logger.info(" - HPRIM LPP routers mounted")
     except Exception as e:
-        logging.getLogger(__name__).warning(f"HPRIM LPP routers not available: {e}")
+        raise RuntimeError("Required HPRIM LPP capability failed to load") from e
     
     # HPRIM Interventions & Cotations router
     try:
         app.include_router(hprim_interventions.router)
         logger.info(" - HPRIM Interventions router mounted at /api/hprim/interventions")
     except Exception as e:
-        logging.getLogger(__name__).warning(f"HPRIM Interventions router not available: {e}")
+        raise RuntimeError("Required HPRIM interventions capability failed to load") from e
     
     # HPRIM Acquittements router
     try:
         app.include_router(hprim_acquittements.router)
         logger.info(" - HPRIM Acquittements router mounted at /api/hprim/acquittements")
     except Exception as e:
-        logging.getLogger(__name__).warning(f"HPRIM Acquittements router not available: {e}")
+        raise RuntimeError("Required HPRIM acknowledgements capability failed to load") from e
     
     # HPRIM Management router (import, dashboard, etc.)
     try:
         app.include_router(hprim_management.router)
         logger.info(" - HPRIM Management router mounted at /hprim")
     except Exception as e:
-        logging.getLogger(__name__).warning(f"HPRIM Management router not available: {e}")
+        raise RuntimeError("Required HPRIM management capability failed to load") from e
     
     # NGAP router (nursing acts)
     try:
+        from app.api import ngap as ngap_api
         app.include_router(ngap.router)
+        app.include_router(ngap_api.router)
         logger.info(" - NGAP router mounted at /ngap")
     except Exception as e:
-        logging.getLogger(__name__).warning(f"NGAP router not available: {e}")
+        raise RuntimeError("Required NGAP capability failed to load") from e
+
+    # Contrats de prise en charge : API et interface partagent le même domaine.
+    try:
+        from app.api import contracts as contracts_api
+        from app.routers import contracts as contracts_router
+        app.include_router(contracts_api.router)
+        app.include_router(contracts_router.router)
+        logger.info(" - Contracts routers mounted at /api/contracts and /contracts")
+    except Exception as e:
+        raise RuntimeError("Required contracts capability failed to load") from e
     
     # Cotations routers (vue liste + saisie rapide)
     try:
@@ -537,7 +654,7 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         logger.info("   • /dossiers/{id}/cotations (liste)")
         logger.info("   • /cotations/dossier/{id}/saisie (saisie rapide)")
     except Exception as e:
-        logging.getLogger(__name__).warning(f"Cotations routers not available: {e}")
+        raise RuntimeError("Required cotations capability failed to load") from e
     
     # REST APIs pour gestion patients et dossiers
     try:
@@ -547,7 +664,7 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         app.include_router(dossiers_api.router)
         logger.info(" - REST APIs Patients & Dossiers mounted at /api/patients and /api/dossiers")
     except Exception as e:
-        logging.getLogger(__name__).warning(f"REST APIs Patients/Dossiers not available: {e}")
+        raise RuntimeError("Required patients/dossiers API capability failed to load") from e
     
     # Roundtrip HPRIM router
     app.include_router(roundtrip_hprim.router)
@@ -559,7 +676,7 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         app.include_router(hprim_messages.router)
         logger.info(" - HPRIM messages cotation router mounted at /hprim-cotation")
     except Exception as e:
-        logging.getLogger(__name__).warning(f"HPRIM messages cotation router not available: {e}")
+        raise RuntimeError("Required HPRIM messages capability failed to load") from e
     
     # Nouvelle IHM Cotation moderne (UX/UI pro)
     app.include_router(cotation_modern.router, prefix="/cotation-modern")
@@ -568,7 +685,7 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         app.include_router(cotation_selector.router)
         logger.info(" - Cotation selector router mounted at /cotation-modern/select")
     except Exception as e:
-        logging.getLogger(__name__).warning(f"Cotation selector router not available: {e}")
+        raise RuntimeError("Required cotation selector capability failed to load") from e
     logger.info(" - Cotation moderne router mounted at /cotation-modern")
     
     logger.info(" - Integration routers mounted")
@@ -597,7 +714,7 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         app.include_router(context.router, prefix="/context", tags=["context"])
         logger.info(" - Context router mounted")
     except Exception as e:
-        logging.getLogger(__name__).warning(f"Context router not available: {e}")
+        raise RuntimeError("Required context capability failed to load") from e
     app.include_router(guide.router)
     app.include_router(docs.router)
     app.include_router(doc_wrapper.router)  # Wrapper pour docs HTML statiques
@@ -608,7 +725,7 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         app.include_router(scenario_templates.router)
         logger.info(" - Scenario templates router mounted")
     except Exception as e:
-        logging.getLogger(__name__).warning(f"Scenario templates router not available: {e}")
+        raise RuntimeError("Required scenario templates capability failed to load") from e
     
     # Configuration des scénarios par EJ - AVANT scenarios pour éviter conflit de routes
     try:
@@ -616,13 +733,13 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         app.include_router(scenario_ej_config.router)
         logger.info(" - Scenario EJ config router mounted")
     except Exception as e:
-        logging.getLogger(__name__).warning(f"Scenario EJ config router not available: {e}")
+        raise RuntimeError("Required scenario EJ capability failed to load") from e
     try:
         from app.routers import scenario_target_profiles
         app.include_router(scenario_target_profiles.router)
         logger.info(" - Scenario target profiles router mounted")
     except Exception as e:
-        logging.getLogger(__name__).warning(f"Scenario target profiles router not available: {e}")
+        raise RuntimeError("Required scenario target profiles capability failed to load") from e
     
     app.include_router(scenarios.router)
     
@@ -675,7 +792,7 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         app.include_router(dashboard_router)
         logger.info(" - Monitoring dashboard mounted at /dashboard")
     except Exception as e:
-        logging.getLogger(__name__).warning(f"Dashboard not available: {e}")
+        raise RuntimeError("Required monitoring dashboard capability failed to load") from e
     
     # 9. Lightweight health/version helpers
     app.include_router(health.router)
@@ -692,60 +809,13 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
             logging.getLogger(__name__).warning(f"Debug router not available: {e}")
     
     logger.info("All routes registered.")
+
+    if not app_settings.testing:
+        _mount_sqladmin(app, runtime_engine, app_settings)
+        logger.info("SQLAdmin interface initialized at /sqladmin")
     
     return app
 
 app = create_app()
-
-# Initialize the admin interface (SQLAdmin) only when not running
-# tests. In test runs a separate test engine/session is used and
-# creating Admin against the production engine can cause Operational
-# errors when the production DB file is absent or schema differs.
-testing = os.getenv("TESTING", "0") in ("1", "true", "True")
-if not testing:
-    # We do this after route registration so SQLAdmin's mounting at
-    # /admin doesn't intercept our custom /admin/ght pages.
-    # Mount SQLAdmin under /sqladmin to avoid conflict with our admin pages.
-    # Configure SQLAdmin with no authentication (internal use only)
-    # Access via /admin gateway page which provides navigation context
-    from sqladmin.authentication import AuthenticationBackend
-    from starlette.requests import Request
-    
-    from app.auth import authenticate_user
-
-    class SqlAdminAuthBackend(AuthenticationBackend):
-        """Backend d'authentification SQLAdmin minimal basé sur les comptes applicatifs."""
-        async def login(self, request: Request) -> bool:
-            form = await request.form()
-            username = str(form.get("username", "")).strip()
-            password = str(form.get("password", ""))
-            user = authenticate_user(username, password)
-            if not user or "admin" not in user.roles:
-                return False
-            request.session["sqladmin_user"] = user.username
-            return True
-        
-        async def logout(self, request: Request) -> bool:
-            request.session.pop("sqladmin_user", None)
-            return True
-        
-        async def authenticate(self, request: Request) -> bool:
-            return bool(request.session.get("sqladmin_user"))
-    
-    templates_path = os.path.join(os.path.dirname(__file__), "templates")
-    
-    admin = Admin(
-        app,
-        engine,
-        base_url="/sqladmin",
-        title="PAMélia - Admin SQL",
-        templates_dir=templates_path,
-        authentication_backend=SqlAdminAuthBackend(secret_key=settings.secret_key)
-    )
-    
-    # Register all admin views
-    register_admin_views(admin)
-    
-    logger.info("SQLAdmin interface initialized at /sqladmin")
 
 logger.info(f"Application ready with {len(app.routes)} routes")

@@ -55,6 +55,7 @@ class TestDossiersRouter(unittest.TestCase):
         mock_session = Mock()
         # Configure session.exec().one() to return 0 for act-count queries
         mock_session.exec.return_value.one.return_value = 0
+        mock_session.exec.return_value.all.return_value = []
 
         # Mock du contexte EJ
         mock_ej_context = Mock()
@@ -78,6 +79,7 @@ class TestDossiersRouter(unittest.TestCase):
              patch('app.routers.dossiers.get_templates_with_filters') as mock_get_templates:
 
             mock_service.get_dossiers.return_value = [mock_dossier]
+            mock_service.count_dossiers.return_value = 1
             mock_template = Mock()
             mock_get_templates.return_value = mock_template
             mock_template.TemplateResponse.return_value = "rendered_list"
@@ -95,6 +97,7 @@ class TestDossiersRouter(unittest.TestCase):
         mock_request = Mock()
         mock_session = Mock()
         mock_session.exec.return_value.one.return_value = 0
+        mock_session.exec.return_value.all.return_value = []
         mock_request.state.ej_context = None
 
         from app.models import DossierType
@@ -104,6 +107,7 @@ class TestDossiersRouter(unittest.TestCase):
              patch('app.routers.dossiers.get_templates_with_filters') as mock_get_templates:
 
             mock_service.get_dossiers.return_value = []
+            mock_service.count_dossiers.return_value = 0
             mock_template = Mock()
             mock_get_templates.return_value = mock_template
             mock_template.TemplateResponse.return_value = "rendered_list"

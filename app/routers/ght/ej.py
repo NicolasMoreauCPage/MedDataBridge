@@ -6,6 +6,7 @@ from sqlmodel import Session, select, func, SQLModel
 import logging
 
 from app.db import get_session
+from app.dependencies.request_data import read_form_data
 from app.utils.flash import flash
 from app.models_structure import EntiteJuridique, EntiteGeographique, IdentifierNamespace
 from app.models_structure import Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
@@ -34,7 +35,7 @@ def new_entite_juridique_form(
     )
 
 @router.post("/{context_id}/ej/new")
-async def create_entite_juridique(
+def create_entite_juridique(
     request: Request,
     context_id: int,
     name: str = Form(...),
@@ -49,6 +50,7 @@ async def create_entite_juridique(
     country: Optional[str] = Form("FR"),
     is_active: str = Form("true"),
     session: Session = Depends(get_session),
+    form_data=Depends(read_form_data),
 ):
     context = get_context_or_404(session, context_id)
     existing = session.exec(select(EntiteJuridique).where(EntiteJuridique.finess_ej == finess_ej)).first()
@@ -56,7 +58,7 @@ async def create_entite_juridique(
         flash(request, "Une entité juridique avec ce FINESS existe déjà.", "error")
         return templates.TemplateResponse(
             request, "ej_form.html",
-            {"context": context, "entite": None, "form_data": await request.form()},
+            {"context": context, "entite": None, "form_data": form_data},
             status_code=400,
         )
 
@@ -122,7 +124,7 @@ def edit_entite_juridique_form(
     )
 
 @router.post("/{context_id}/ej/{ej_id}/edit")
-async def update_entite_juridique(
+def update_entite_juridique(
     request: Request,
     context_id: int,
     ej_id: int,
@@ -138,6 +140,7 @@ async def update_entite_juridique(
     country: Optional[str] = Form("FR"),
     is_active: str = Form("true"),
     session: Session = Depends(get_session),
+    form_data=Depends(read_form_data),
 ):
     context = get_context_or_404(session, context_id)
     entite = get_ej_or_404(session, context, ej_id)
@@ -148,7 +151,7 @@ async def update_entite_juridique(
             flash(request, "Une entité juridique avec ce FINESS existe déjà.", "error")
             return templates.TemplateResponse(
                 request, "ej_form.html",
-                {"context": context, "entite": entite, "form_data": await request.form()},
+                {"context": context, "entite": entite, "form_data": form_data},
                 status_code=400,
             )
 

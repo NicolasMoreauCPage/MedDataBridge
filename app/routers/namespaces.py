@@ -5,6 +5,7 @@ from sqlmodel import Session, select
 from starlette.responses import RedirectResponse
 
 from app.db import get_session
+from app.dependencies.request_data import read_form_data
 from app.models_structure import GHTContext, IdentifierNamespace, EntiteJuridique
 from app.models_identifiers import Identifier
 from app.utils.flash import flash
@@ -55,15 +56,15 @@ def new_namespace(
     )
 
 @router.post("/{ght_id}/namespaces/new")
-async def create_namespace(
+def create_namespace(
     request: Request,
     ght_id: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    form=Depends(read_form_data),
 ):
     """Création namespace"""
     context = get_context_or_404(session, ght_id)
 
-    form = await request.form()
     
     # Validation basique - system est requis, name est optionnel
     if not form.get("system"):
@@ -174,11 +175,12 @@ def edit_namespace(
     )
 
 @router.post("/{ght_id}/namespaces/{namespace_id}/edit")
-async def update_namespace(
+def update_namespace(
     request: Request,
     ght_id: int,
     namespace_id: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    form=Depends(read_form_data),
 ):
     """Mise à jour namespace"""
     context = get_context_or_404(session, ght_id)
@@ -191,7 +193,6 @@ async def update_namespace(
     if not namespace:
         raise HTTPException(status_code=404, detail="Namespace not found")
 
-    form = await request.form()
     
     # Validation basique
     if not form.get("name") or not form.get("system"):
@@ -274,11 +275,12 @@ def new_ej_namespace(
 
 
 @router.post("/{ght_id}/ej/{ej_id}/namespaces/new")
-async def create_ej_namespace(
+def create_ej_namespace(
     request: Request,
     ght_id: int,
     ej_id: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    form=Depends(read_form_data),
 ):
     """Création namespace pour une EJ"""
     context = get_context_or_404(session, ght_id)
@@ -289,7 +291,6 @@ async def create_ej_namespace(
         # If EJ doesn't exist, redirect to EJ list
         return RedirectResponse(f"/admin/ght/{ght_id}", status_code=302)
     
-    form = await request.form()
     
     # Validation basique
     if not form.get("name") or not form.get("system"):
@@ -370,12 +371,13 @@ def edit_ej_namespace(
 
 
 @router.post("/{ght_id}/ej/{ej_id}/namespaces/{namespace_id}/edit")
-async def update_ej_namespace(
+def update_ej_namespace(
     request: Request,
     ght_id: int,
     ej_id: int,
     namespace_id: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    form=Depends(read_form_data),
 ):
     """Mise à jour namespace EJ"""
     context = get_context_or_404(session, ght_id)
@@ -390,7 +392,6 @@ async def update_ej_namespace(
     if not namespace:
         raise HTTPException(status_code=404, detail="Namespace not found")
 
-    form = await request.form()
     
     # Validation basique
     if not form.get("name") or not form.get("system"):

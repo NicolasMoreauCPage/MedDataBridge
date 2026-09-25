@@ -34,9 +34,13 @@
     </div>
     <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 mb-6">
         <h4 class="text-lg font-semibold mb-2">Informations du contexte</h4>
+    {% if context %}
     <p><strong>Dernière séquence :</strong> {{ context.last_sequence_value|default('-', true) }}</p>
     <p><strong>Créé le :</strong> {{ context.created_at|default('-', true) }}</p>
     <p><strong>Mis à jour le :</strong> {{ context.updated_at|default('-', true) }}</p>
+    {% else %}
+    <p class="text-slate-500">Aucun contexte n'est encore associé à cet endpoint.</p>
+    {% endif %}
     </div>
     <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 mb-6">
         <h4 class="text-lg font-semibold mb-2">Mappings Patients</h4>

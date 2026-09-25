@@ -73,7 +73,7 @@ cd /opt/meddatabridge
 source .venv/bin/activate
 
 # Installer les dépendances depuis les fichiers locaux (45 packages)
-pip install --no-index --find-links packages-offline -r requirements-production.txt
+pip install --no-index --find-links packages-offline -r requirements-runtime.txt
 
 # Vérifier l'installation
 pip list
@@ -368,7 +368,7 @@ source .venv/bin/activate
 pip list
 
 # Réinstaller si nécessaire
-pip install --no-index --find-links packages-offline -r requirements-production.txt --force-reinstall
+pip install --no-index --find-links packages-offline -r requirements-runtime.txt --force-reinstall
 ```
 
 ### Erreurs de base de données

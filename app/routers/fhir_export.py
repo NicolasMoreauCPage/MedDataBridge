@@ -5,6 +5,7 @@ from app.db import get_session
 from app.models_structure import EntiteJuridique
 from app.metrics import record_fhir_event_safely
 from app.services.fhir_export_service import FHIRExportService
+from app.services.cache_service import CacheService, get_request_cache
 
 
 router = APIRouter(prefix="/api/fhir", tags=["FHIR Export"])
@@ -13,7 +14,8 @@ router = APIRouter(prefix="/api/fhir", tags=["FHIR Export"])
 @router.get("/export/structure/{ej_id}", response_model=dict)
 def export_structure(
     ej_id: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    cache: CacheService = Depends(get_request_cache),
 ):
     """
     Exporte la structure organisationnelle au format FHIR.
@@ -41,7 +43,7 @@ def export_structure(
         fhir_url = cfg_url
     else:
         fhir_url = "http://localhost:8000/fhir"
-    service = FHIRExportService(session, fhir_url)
+    service = FHIRExportService(session, fhir_url, cache=cache)
     
     # Exporter la structure
     import time as _time
@@ -56,7 +58,8 @@ def export_patients(
     ej_id: int,
     limit: int = Query(100, ge=1, le=500, description="Nombre maximum de patients à exporter"),
     offset: int = Query(0, ge=0, description="Nombre de patients à sauter"),
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    cache: CacheService = Depends(get_request_cache),
 ):
     """
     Exporte les patients au format FHIR.
@@ -86,7 +89,7 @@ def export_patients(
         fhir_url = cfg_url
     else:
         fhir_url = "http://localhost:8000/fhir"
-    service = FHIRExportService(session, fhir_url)
+    service = FHIRExportService(session, fhir_url, cache=cache)
     
     # Exporter les patients
     import time as _time
@@ -101,7 +104,8 @@ def export_venues(
     ej_id: int,
     limit: int = Query(100, ge=1, le=500, description="Nombre maximum de venues à exporter"),
     offset: int = Query(0, ge=0, description="Nombre de venues à sauter"),
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    cache: CacheService = Depends(get_request_cache),
 ):
     """
     Exporte les venues (séjours/rencontres) au format FHIR.
@@ -127,7 +131,7 @@ def export_venues(
     
     # Créer le service d'export
     fhir_url = ej.ght_context.fhir_server_url if ej.ght_context else "http://localhost:8000/fhir"
-    service = FHIRExportService(session, fhir_url)
+    service = FHIRExportService(session, fhir_url, cache=cache)
     
     # Exporter les venues
     import time as _time
@@ -140,7 +144,8 @@ def export_venues(
 @router.get("/export/all/{ej_id}", response_model=dict)
 def export_all(
     ej_id: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    cache: CacheService = Depends(get_request_cache),
 ):
     """
     Exporte toutes les données (structure, patients, venues) au format FHIR.
@@ -166,7 +171,7 @@ def export_all(
     
     # Créer le service d'export
     fhir_url = ej.ght_context.fhir_server_url if ej.ght_context else "http://localhost:8000/fhir"
-    service = FHIRExportService(session, fhir_url)
+    service = FHIRExportService(session, fhir_url, cache=cache)
     
     # Exporter toutes les données
     import time as _time

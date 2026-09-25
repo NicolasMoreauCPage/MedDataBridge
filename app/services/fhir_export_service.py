@@ -2,7 +2,7 @@
 Service d'export des données vers FHIR.
 """
 from datetime import datetime
-from typing import Dict
+from typing import Dict, Optional
 from collections import defaultdict
 from sqlmodel import Session, select
 from sqlalchemy import func
@@ -35,7 +35,13 @@ from app.services.cache_service import get_cache_service
 class FHIRExportService:
     """Service d'export des données vers FHIR."""
     
-    def __init__(self, session: Session, base_url: str, enable_cache: bool = True):
+    def __init__(
+        self,
+        session: Session,
+        base_url: str,
+        enable_cache: bool = True,
+        cache: Optional[object] = None,
+    ):
         self.session = session
         self.base_url = base_url
         self.structure_converter = StructureToFHIRConverter(base_url)
@@ -52,7 +58,7 @@ class FHIRExportService:
         # Service de cache Redis
         # During pytest, disable cache to avoid test cross-contamination by stale bundles.
         self.enable_cache = enable_cache and not bool(os.getenv("PYTEST_CURRENT_TEST"))
-        self.cache = get_cache_service() if self.enable_cache else None
+        self.cache = (cache or get_cache_service()) if self.enable_cache else None
     
     def export_structure(self, ej: EntiteJuridique) -> FHIRBundle:
         """Exporte la structure d'un établissement en FHIR."""

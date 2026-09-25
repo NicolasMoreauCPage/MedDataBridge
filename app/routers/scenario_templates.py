@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.responses import HTMLResponse
@@ -11,13 +12,17 @@ from sqlmodel import Session, select
 from app.db import get_session
 from app.models_scenarios import ScenarioTemplate, ScenarioTemplateStep
 from app.models_structure import EntiteJuridique
-from app.services.scenario_template_materializer import materialize_template, MaterializationOptions
+from app.services.scenario_template_materializer import (
+    materialize_template,
+    MaterializationOptions,
+)
 from app.models_endpoints import SystemEndpoint
 
 
 def get_templates_with_filters(request: FastAPIRequest):
     """Retourne l'instance templates globale avec les filtres enregistrés"""
     return request.app.state.templates
+
 
 router = APIRouter(prefix="/scenarios/templates", tags=["scenario-templates"])
 
@@ -93,7 +98,9 @@ def _template_to_dict(t: ScenarioTemplate, steps: List[ScenarioTemplateStep]):
 
 @router.get("", response_class=HTMLResponse)
 def list_templates(request: Request, session: Session = Depends(get_session)):
-    templates_q = session.exec(select(ScenarioTemplate).order_by(ScenarioTemplate.name)).all()
+    templates_q = session.exec(
+        select(ScenarioTemplate).order_by(ScenarioTemplate.name)
+    ).all()
     rows = []
     for t in templates_q:
         rows.append(
@@ -116,12 +123,18 @@ def list_templates(request: Request, session: Session = Depends(get_session)):
         "rows": rows,
         "show_actions": False,
     }
-    return get_templates_with_filters(request).TemplateResponse(request, "list.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(
+        request, "list.html", ctx
+    )
 
 
 @router.get("/{template_key}", response_class=HTMLResponse)
-def template_detail(template_key: str, request: Request, session: Session = Depends(get_session)):
-    template = session.exec(select(ScenarioTemplate).where(ScenarioTemplate.key == template_key)).first()
+def template_detail(
+    template_key: str, request: Request, session: Session = Depends(get_session)
+):
+    template = session.exec(
+        select(ScenarioTemplate).where(ScenarioTemplate.key == template_key)
+    ).first()
     if not template:
         raise HTTPException(status_code=404, detail="Template introuvable")
     steps = session.exec(
@@ -138,10 +151,12 @@ def template_detail(template_key: str, request: Request, session: Session = Depe
     )
     active_ej_id = getattr(getattr(request.state, "ej_context", None), "id", None)
     if active_ej_id:
-        endpoint_query = endpoint_query.where(or_(
-            SystemEndpoint.entite_juridique_id == active_ej_id,
-            SystemEndpoint.entite_juridique_id.is_(None),
-        ))
+        endpoint_query = endpoint_query.where(
+            or_(
+                SystemEndpoint.entite_juridique_id == active_ej_id,
+                SystemEndpoint.entite_juridique_id.is_(None),
+            )
+        )
     endpoints = session.exec(endpoint_query).all()
     ctx = {
         "request": request,
@@ -153,7 +168,9 @@ def template_detail(template_key: str, request: Request, session: Session = Depe
             {"label": template.name, "url": f"/scenarios/templates/{template.key}"},
         ],
     }
-    return get_templates_with_filters(request).TemplateResponse(request, "scenario_template_detail.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(
+        request, "scenario_template_detail.html", ctx
+    )
 
 
 @router.post("/{template_key}/materialize", response_model=dict)
@@ -163,7 +180,9 @@ def materialize(
     request: Request,
     session: Session = Depends(get_session),
 ):
-    template = session.exec(select(ScenarioTemplate).where(ScenarioTemplate.key == template_key)).first()
+    template = session.exec(
+        select(ScenarioTemplate).where(ScenarioTemplate.key == template_key)
+    ).first()
     if not template:
         raise HTTPException(status_code=404, detail="Template introuvable")
 
@@ -192,7 +211,9 @@ def materialize(
                 "name": st.name,
                 "message_type": st.message_type,
                 "message_format": st.message_format,
-                "payload_preview": (st.payload[:120] + "…") if len(st.payload) > 120 else st.payload,
+                "payload_preview": (st.payload[:120] + "…")
+                if len(st.payload) > 120
+                else st.payload,
             }
             for st in steps
         ],
@@ -200,7 +221,7 @@ def materialize(
 
 
 @router.post("/{template_key}/play", response_model=dict)
-async def play_template(
+def play_template(
     template_key: str,
     request: Request,
     protocol: str = Form("HL7v2"),
@@ -214,17 +235,24 @@ async def play_template(
     session: Session = Depends(get_session),
 ):
     protocol = _validate_play_protocol(protocol)
-    template = session.exec(select(ScenarioTemplate).where(ScenarioTemplate.key == template_key)).first()
+    template = session.exec(
+        select(ScenarioTemplate).where(ScenarioTemplate.key == template_key)
+    ).first()
     if not template:
         raise HTTPException(status_code=404, detail="Template introuvable")
     endpoint = session.get(SystemEndpoint, endpoint_id)
     if not endpoint:
         raise HTTPException(status_code=404, detail="Endpoint introuvable")
     if not endpoint.is_enabled or endpoint.role not in {"sender", "both"}:
-        raise HTTPException(status_code=422, detail="Cet endpoint n'est pas disponible pour l'émission")
+        raise HTTPException(
+            status_code=422, detail="Cet endpoint n'est pas disponible pour l'émission"
+        )
     active_ej_id = getattr(getattr(request.state, "ej_context", None), "id", None)
     if active_ej_id and endpoint.entite_juridique_id not in {None, active_ej_id}:
-        raise HTTPException(status_code=422, detail="Cet endpoint est hors du contexte établissement actif")
+        raise HTTPException(
+            status_code=422,
+            detail="Cet endpoint est hors du contexte établissement actif",
+        )
     supported_kinds = _PLAYABLE_ENDPOINT_KINDS.get(protocol, set())
     if (endpoint.kind or "").upper() not in supported_kinds:
         raise HTTPException(
@@ -232,17 +260,32 @@ async def play_template(
             detail=f"L'endpoint {endpoint.name} ({endpoint.kind}) n'est pas compatible avec le protocole {protocol}",
         )
     ej = _resolve_ej_context(request, session, ej_id)
-    opts = MaterializationOptions(protocol=protocol, ipp_prefix=ipp_prefix, nda_prefix=nda_prefix)
+    opts = MaterializationOptions(
+        protocol=protocol, ipp_prefix=ipp_prefix, nda_prefix=nda_prefix
+    )
     scenario = materialize_template(session, template, ej_context=ej, options=opts)
-    from app.services.scenario_play_service import ScenarioPlayError, execute_scenario_play, prepare_scenario_play
+    from app.services.scenario_play_service import (
+        ScenarioPlayError,
+        execute_scenario_play,
+        prepare_scenario_play,
+    )
+
     try:
         play = prepare_scenario_play(session, scenario, [endpoint], dry_run=dry_run)
-        play = await execute_scenario_play(session, play.id)
+        play = asyncio.run(execute_scenario_play(session, play.id))
     except ScenarioPlayError as e:
         raise HTTPException(status_code=500, detail=str(e))
     from app.models_scenario_runs import ScenarioDelivery, ScenarioPlayStep
-    deliveries = session.exec(select(ScenarioDelivery).where(ScenarioDelivery.play_id == play.id)).all()
-    compiled_steps = {item.id: item for item in session.exec(select(ScenarioPlayStep).where(ScenarioPlayStep.play_id == play.id)).all()}
+
+    deliveries = session.exec(
+        select(ScenarioDelivery).where(ScenarioDelivery.play_id == play.id)
+    ).all()
+    compiled_steps = {
+        item.id: item
+        for item in session.exec(
+            select(ScenarioPlayStep).where(ScenarioPlayStep.play_id == play.id)
+        ).all()
+    }
     return {
         "run": {
             "scenario_id": scenario.id,
@@ -257,7 +300,22 @@ async def play_template(
             {
                 "status": delivery.status,
                 "ack": delivery.ack_code,
-                "payload_preview": ((delivery.compiled_payload or compiled_steps[delivery.play_step_id].compiled_payload)[:100] + "…") if len(delivery.compiled_payload or compiled_steps[delivery.play_step_id].compiled_payload) > 100 else (delivery.compiled_payload or compiled_steps[delivery.play_step_id].compiled_payload),
+                "payload_preview": (
+                    (
+                        delivery.compiled_payload
+                        or compiled_steps[delivery.play_step_id].compiled_payload
+                    )[:100]
+                    + "…"
+                )
+                if len(
+                    delivery.compiled_payload
+                    or compiled_steps[delivery.play_step_id].compiled_payload
+                )
+                > 100
+                else (
+                    delivery.compiled_payload
+                    or compiled_steps[delivery.play_step_id].compiled_payload
+                ),
             }
             for delivery in deliveries
         ],

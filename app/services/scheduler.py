@@ -3,10 +3,12 @@ Background task scheduler for file endpoint polling.
 
 Runs periodic tasks like scanning file-based endpoints.
 """
+
 import asyncio
 import logging
+from collections.abc import Callable
 from typing import Optional
-from app.db import session_factory
+from app.db import session_factory as default_session_factory
 from app.services.file_poller import scan_file_endpoints
 from app.services.outbox_service import process_due_messages
 from app.services.scenario_campaign_service import process_queued_campaigns
@@ -16,6 +18,10 @@ from config.settings import settings
 
 logger = logging.getLogger(__name__)
 
+# Alias conservé pour les intégrations historiques qui remplacent cette
+# fabrique au niveau du module.
+session_factory = default_session_factory
+
 # Les deux transports sont lus par ``FileEndpointPoller``. FTP reste un
 # transport de dépôt sortant : il n'a pas de poller entrant dans l'application.
 POLLABLE_FILE_ENDPOINT_KINDS = ("FILE", "SFTP")
@@ -24,27 +30,36 @@ POLLABLE_FILE_ENDPOINT_KINDS = ("FILE", "SFTP")
 class BackgroundScheduler:
     """
     Background task scheduler for periodic jobs.
-    
+
     Handles:
     - file endpoint polling (configurable interval);
     - persistent outgoing messages whose retry date has elapsed.
     """
-    
-    def __init__(self, poll_interval_seconds: int = 60):
+
+    def __init__(
+        self,
+        poll_interval_seconds: int = 60,
+        *,
+        session_factory_provider: Callable | None = None,
+        testing: bool | None = None,
+    ):
         """
         Initialize the scheduler.
-        
+
         Args:
             poll_interval_seconds: Interval between file polls (default: 60s = 1 minute)
         """
         self.poll_interval_seconds = poll_interval_seconds
+        self.session_factory = session_factory_provider or session_factory
+        self.testing = settings.testing if testing is None else testing
         self.running = False
         self.task: Optional[asyncio.Task] = None
-    
+
     async def start(self):
         """Start the background scheduler"""
         import os
-        if "PYTEST_CURRENT_TEST" in os.environ:
+
+        if self.testing or "PYTEST_CURRENT_TEST" in os.environ:
             logger.info("Scheduler not started: running under pytest")
             return
         if self.running:
@@ -52,13 +67,15 @@ class BackgroundScheduler:
             return
         self.running = True
         self.task = asyncio.create_task(self._poll_loop())
-        logger.info(f"Background scheduler started (poll interval: {self.poll_interval_seconds}s)")
-    
+        logger.info(
+            f"Background scheduler started (poll interval: {self.poll_interval_seconds}s)"
+        )
+
     async def stop(self):
         """Stop the background scheduler"""
         if not self.running:
             return
-        
+
         self.running = False
         if self.task:
             self.task.cancel()
@@ -66,9 +83,9 @@ class BackgroundScheduler:
                 await self.task
             except asyncio.CancelledError:
                 pass
-        
+
         logger.info("Background scheduler stopped")
-    
+
     async def _poll_loop(self):
         """Main polling loop"""
         while self.running:
@@ -83,40 +100,46 @@ class BackgroundScheduler:
                     await job()
                 except Exception as e:
                     logger.error("Error in %s: %s", label, e, exc_info=True)
-            
+
             # Wait for next poll
             try:
                 await asyncio.sleep(self.poll_interval_seconds)
             except asyncio.CancelledError:
                 break
-    
+
     async def _scan_file_endpoints(self):
         """Scan all file endpoints"""
         # Create a session for this scan using the explicit factory
-        with session_factory() as session:
+        with self.session_factory() as session:
             # Quick check: if there are no enabled file-polling endpoints, skip
             # the expensive scan. SFTP uses the same poller as local FILE.
-            stmt = select(SystemEndpoint).where(
-                SystemEndpoint.kind.in_(POLLABLE_FILE_ENDPOINT_KINDS),
-                SystemEndpoint.is_enabled.is_(True)
-            ).limit(1)
+            stmt = (
+                select(SystemEndpoint)
+                .where(
+                    SystemEndpoint.kind.in_(POLLABLE_FILE_ENDPOINT_KINDS),
+                    SystemEndpoint.is_enabled.is_(True),
+                )
+                .limit(1)
+            )
             any_ep = session.exec(stmt).first()
             if not any_ep:
-                logger.debug("No enabled FILE/SFTP endpoints configured; skipping file scan")
+                logger.debug(
+                    "No enabled FILE/SFTP endpoints configured; skipping file scan"
+                )
                 return
 
             logger.debug("Scanning file endpoints...")
             stats = await scan_file_endpoints(session)
-            if stats['files_processed'] > 0 or stats['errors']:
+            if stats["files_processed"] > 0 or stats["errors"]:
                 logger.info(
                     f"File scan complete: {stats['endpoints_scanned']} endpoints, "
                     f"{stats['files_processed']} files processed, "
                     f"{stats['mfn_messages']} MFN, {stats['adt_messages']} ADT, "
                     f"{len(stats['errors'])} errors"
                 )
-                
-                if stats['errors']:
-                    for error in stats['errors']:
+
+                if stats["errors"]:
+                    for error in stats["errors"]:
                         logger.error(f"  - {error}")
         # context manager ensures session closed/rolled back correctly
 
@@ -127,7 +150,7 @@ class BackgroundScheduler:
         conserve son payload et son identifiant de corrélation, ce qui garantit
         qu'une reprise technique ne crée pas un nouveau jeu de scénario.
         """
-        with session_factory() as session:
+        with self.session_factory() as session:
             result = await process_due_messages(session, limit=100)
             if result["processed"]:
                 logger.info(
@@ -137,10 +160,13 @@ class BackgroundScheduler:
 
     async def _process_queued_campaigns(self):
         """Fait avancer les campagnes une étape à la fois, de façon reprise-safe."""
-        with session_factory() as session:
+        with self.session_factory() as session:
             result = await process_queued_campaigns(session, limit=5)
             if result["processed"]:
-                logger.info("Qualification campaigns: %(processed)s progressed, %(completed)s completed", result)
+                logger.info(
+                    "Qualification campaigns: %(processed)s progressed, %(completed)s completed",
+                    result,
+                )
 
 
 # Global scheduler instance
@@ -150,10 +176,10 @@ _scheduler: Optional[BackgroundScheduler] = None
 def get_scheduler(poll_interval_seconds: int = 60) -> BackgroundScheduler:
     """
     Get or create the global scheduler instance.
-    
+
     Args:
         poll_interval_seconds: Polling interval (default: 60s)
-    
+
     Returns:
         BackgroundScheduler instance
     """
@@ -166,7 +192,7 @@ def get_scheduler(poll_interval_seconds: int = 60) -> BackgroundScheduler:
 async def start_scheduler(poll_interval_seconds: int = 60):
     """
     Start the background scheduler.
-    
+
     Args:
         poll_interval_seconds: Polling interval (default: 60s = 1 minute)
     """

@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session, select
 
 from app.db import get_session
+from app.dependencies.request_data import read_form_data
 from app.services.structure_schedule import apply_scheduled_status, form_datetime_to_hl7, hl7_to_form_datetime
 from app.services.vocabulary_lookup import get_vocabulary_options
 from app.schemas.structure import (
@@ -47,8 +48,7 @@ def list_chambres(
         )
     
     chambres = session.exec(query.order_by(Chambre.name)).all()
-    if apply_scheduled_status(chambres):
-        session.commit()
+    apply_scheduled_status(chambres)
     
     uhs = session.exec(select(UniteHebergement).order_by(UniteHebergement.name)).all()
     uh_map = {uh.id: uh.name for uh in uhs}
@@ -76,8 +76,7 @@ def new_chambre_form(
     uh = session.get(UniteHebergement, uh_id)
     if not uh:
         raise HTTPException(status_code=404, detail="Unité d'hébergement non trouvée")
-    if apply_scheduled_status([uh]):
-        session.commit()
+    apply_scheduled_status([uh])
 
     return get_templates_with_filters(request).TemplateResponse(
         request,
@@ -132,15 +131,15 @@ def edit_chambre_form(
     )
 
 @router.post("/chambres/{chambre_id}")
-async def update_chambre(
+def update_chambre(
     request: Request,
     chambre_id: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    form=Depends(read_form_data),
 ):
     chambre = session.get(Chambre, chambre_id)
     if not chambre:
         raise HTTPException(status_code=404, detail="Chambre non trouvée")
-    form = await request.form()
     chambre.name = form.get("name", chambre.name)
     chambre.identifier = form.get("identifier", chambre.identifier)
     # Une chambre est toujours de type "ro" (room)
@@ -213,8 +212,7 @@ def list_chambres_api(
         skip=skip,
         limit=limit,
     )
-    if apply_scheduled_status(chambres):
-        session.commit()
+    apply_scheduled_status(chambres)
     return chambres
 
 @api_router.get("/chambres/{chambre_id}")
@@ -294,11 +292,11 @@ def get_chambre_api(
     }
 
 @router.post("/chambres", response_model=ChambreRead)
-async def create_chambre(
+def create_chambre(
     request: Request,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    form=Depends(read_form_data),
 ):
-    form = await request.form()
     status_value = form.get("status") or LocationStatus.ACTIVE
     chambre = Chambre(
         name=form["name"],
@@ -345,8 +343,7 @@ def list_lits(
         )
     
     lits = session.exec(query.order_by(Lit.name)).all()
-    if apply_scheduled_status(lits):
-        session.commit()
+    apply_scheduled_status(lits)
     
     chambres = session.exec(select(Chambre).order_by(Chambre.name)).all()
     chambre_map = {chambre.id: chambre.name for chambre in chambres}
@@ -388,8 +385,7 @@ def list_lits_api(
         skip=skip,
         limit=limit,
     )
-    if apply_scheduled_status(lits):
-        session.commit()
+    apply_scheduled_status(lits)
     return lits
 
 @api_router.get("/lits/{lit_id}")

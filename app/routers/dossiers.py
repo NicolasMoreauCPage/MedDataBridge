@@ -8,7 +8,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi import Request as FastAPIRequest
 from sqlmodel import select, Session
 from sqlalchemy.orm import selectinload
-from sqlalchemy import String
+from sqlalchemy import String, func
 from datetime import datetime
 from typing import Optional
 from urllib.parse import urlencode
@@ -80,8 +80,7 @@ def list_dossiers(
     eg_id = getattr(eg_context, "id", None)
     ej_id = getattr(ej_context, "id", None) if not eg_id else None  # EJ seulement si pas d'EG
     
-    dossiers = dossiers_service.get_dossiers(
-        session,
+    dossier_filters = dict(
         ej_id=ej_id,
         eg_id=eg_id,
         patient_id=patient_id,
@@ -93,26 +92,31 @@ def list_dossiers(
         admit_to=admit_to,
         current_state=current_state,
     )
-    
-    # Le catalogue peut contenir plusieurs milliers de dossiers.  Les actes ne
-    # sont donc comptés que pour la page demandée, et non pour toutes les lignes
-    # correspondant au filtre.
+
     page = max(1, page)
     page_size = min(max(page_size, 25), 100)
-    total_count = len(dossiers)
+    total_count = dossiers_service.count_dossiers(session, **dossier_filters)
     total_pages = max(1, (total_count + page_size - 1) // page_size)
     page = min(page, total_pages)
-    page_dossiers = dossiers[(page - 1) * page_size: page * page_size]
+    page_dossiers = dossiers_service.get_dossiers(
+        session,
+        **dossier_filters,
+        offset=(page - 1) * page_size,
+        limit=page_size,
+    )
 
-    # Compter les actes pour chaque dossier de la page courante.
-    from sqlalchemy import func
-    dossier_acts_count = {}
-    for d in page_dossiers:
-        ccam_count = session.exec(select(func.count(CCAMAct.id)).where(CCAMAct.dossier_id == d.id)).one()
-        ngap_count = session.exec(select(func.count(NGAPAct.id)).where(NGAPAct.dossier_id == d.id)).one()
-        ucd_count = session.exec(select(func.count(UCDAct.id)).where(UCDAct.dossier_id == d.id)).one()
-        lpp_count = session.exec(select(func.count(LPPAct.id)).where(LPPAct.dossier_id == d.id)).one()
-        dossier_acts_count[d.id] = ccam_count + ngap_count + ucd_count + lpp_count
+    # Quatre agrégations couvrent toute la page, indépendamment de sa taille.
+    dossier_acts_count = {d.id: 0 for d in page_dossiers}
+    dossier_ids = list(dossier_acts_count)
+    if dossier_ids:
+        for act_model in (CCAMAct, NGAPAct, UCDAct, LPPAct):
+            counts = session.exec(
+                select(act_model.dossier_id, func.count(act_model.id))
+                .where(act_model.dossier_id.in_(dossier_ids))
+                .group_by(act_model.dossier_id)
+            ).all()
+            for dossier_id, count in counts:
+                dossier_acts_count[dossier_id] += count
     
     rows = [
         {

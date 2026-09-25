@@ -3,15 +3,25 @@ import logging
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 from app.db import get_session
 from app.models_endpoints import SystemEndpoint
 
 router = APIRouter(prefix="/interop", tags=["interop"])
 logger = logging.getLogger(__name__)
 
+def _get_mllp_endpoint(session_factory, endpoint_id: int):
+    with session_factory() as session:
+        return session.get(SystemEndpoint, endpoint_id)
+
+
 @router.post("/mllp/start/{endpoint_id}")
-async def start_endpoint(endpoint_id: int, request: Request, session=Depends(get_session)):
-    e = session.get(SystemEndpoint, endpoint_id)
+async def start_endpoint(endpoint_id: int, request: Request):
+    e = await run_in_threadpool(
+        _get_mllp_endpoint,
+        request.app.state.session_factory,
+        endpoint_id,
+    )
     if not e or e.kind != "MLLP":
         return JSONResponse({"error": "Endpoint non trouvé ou pas MLLP"}, status_code=400)
     await request.app.state.mllp_manager.start_endpoint(e)

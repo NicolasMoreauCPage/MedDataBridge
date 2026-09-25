@@ -187,8 +187,7 @@ def list_poles(
         )
     
     poles = session.exec(query.order_by(Pole.name)).all()
-    if apply_scheduled_status(poles):
-        session.commit()
+    apply_scheduled_status(poles)
     
     egs = session.exec(select(EntiteGeographique).order_by(EntiteGeographique.name)).all()
     eg_map = {eg.id: eg.name for eg in egs}
@@ -225,8 +224,7 @@ def list_poles_api(
         skip=skip,
         limit=limit,
     )
-    if apply_scheduled_status(poles):
-        session.commit()
+    apply_scheduled_status(poles)
     return poles
 
 @api_router.get("/poles/{pole_id}")

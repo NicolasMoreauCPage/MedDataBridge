@@ -1,14 +1,14 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from app.db import get_session
+from app.dependencies.request_data import read_body
 from app.models_endpoints import MessageLog
 
 router = APIRouter(prefix="/inbox/fhir", tags=["inbox-fhir"])
 
 @router.post("")
-async def receive_fhir(request: Request, session=Depends(get_session)):
+def receive_fhir(body: bytes = Depends(read_body), session=Depends(get_session)):
     # Reçoit un Bundle/Resource FHIR en JSON
-    body = await request.body()
     log = MessageLog(direction="in", kind="FHIR", payload=body.decode("utf-8"), status="received")
     session.add(log)
     session.commit()

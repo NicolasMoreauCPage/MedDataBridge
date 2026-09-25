@@ -12,7 +12,7 @@ Concurrence
   demandent un start/stop simultané.
 """
 
- # app/services/mllp_manager.py
+# app/services/mllp_manager.py
 import asyncio
 from typing import Dict, List, Tuple
 from contextlib import suppress
@@ -21,6 +21,7 @@ from app.models_endpoints import SystemEndpoint
 from app.services.mllp import start_mllp_server, stop_mllp_server
 from config.settings import settings
 
+
 class MLLPManager:
     """Gestionnaire de serveurs MLLP.
 
@@ -28,11 +29,13 @@ class MLLPManager:
         session_factory: Callable retournant une session DB courte.
         on_message: Callback asynchrone appelé pour chaque message entrant.
     """
-    def __init__(self, session_factory, on_message):
+
+    def __init__(self, session_factory, on_message, *, testing: bool | None = None):
         self.session_factory = session_factory
         self.on_message = on_message
+        self.testing = settings.testing if testing is None else testing
         self.servers: Dict[int, asyncio.base_events.Server] = {}
-        self._by_addr: Dict[Tuple[str,int], int] = {}
+        self._by_addr: Dict[Tuple[str, int], int] = {}
         self._lock = asyncio.Lock()
 
     def running_ids(self) -> List[int]:
@@ -42,9 +45,9 @@ class MLLPManager:
     async def start_endpoint(self, endpoint: SystemEndpoint):
         """Démarre un endpoint MLLP s'il est éligible et non déjà démarré."""
         # During tests, avoid starting network servers
-        if getattr(settings, "testing", False):
+        if self.testing:
             return
-        if endpoint.kind != "MLLP" or endpoint.role not in ("receiver","both"):
+        if endpoint.kind != "MLLP" or endpoint.role not in ("receiver", "both"):
             return
         if not endpoint.host or not endpoint.port:
             return
@@ -67,10 +70,14 @@ class MLLPManager:
                 # bind échoue pour un endpoint particulier (par ex. address
                 # already in use). Loggons le problème et continuons.
                 import logging
+
                 logger = logging.getLogger("mllp.manager")
                 logger.warning(
                     "Cannot start MLLP endpoint %s on %s:%s — %s; skipping",
-                    getattr(endpoint, "name", endpoint.id), endpoint.host, endpoint.port, e
+                    getattr(endpoint, "name", endpoint.id),
+                    endpoint.host,
+                    endpoint.port,
+                    e,
                 )
                 return
             self.servers[endpoint.id] = server
@@ -90,7 +97,7 @@ class MLLPManager:
     async def stop_all(self):
         """Arrête tous les serveurs en cours."""
         # During tests, no-op
-        if getattr(settings, "testing", False):
+        if self.testing:
             return
         async with self._lock:
             servers = list(self.servers.values())
@@ -106,13 +113,12 @@ class MLLPManager:
         endpoints MLLP ayant `is_enabled=True`.
         """
         # During tests, skip reloading MLLP endpoints
-        if getattr(settings, "testing", False):
+        if self.testing:
             return
         await self.stop_all()
         eps = session.exec(
             select(SystemEndpoint).where(
-                SystemEndpoint.is_enabled.is_(True),
-                SystemEndpoint.kind == "MLLP"
+                SystemEndpoint.is_enabled.is_(True), SystemEndpoint.kind == "MLLP"
             )
         ).all()
         for e in eps:

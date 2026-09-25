@@ -1,23 +1,22 @@
 """
 API de gestion du cache Redis.
 """
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import Dict, Any
-from app.services.cache_service import get_cache_service
 from app.auth import require_role
 
 router = APIRouter(prefix="/cache", tags=["cache"])
 
 
 @router.get("/stats")
-async def get_cache_stats() -> Dict[str, Any]:
+async def get_cache_stats(request: Request) -> Dict[str, Any]:
     """
     Récupère les statistiques du cache Redis.
     
     Returns:
         Statistiques détaillées (mémoire, hits, misses, hit rate)
     """
-    cache = get_cache_service()
+    cache = request.app.state.cache
     stats = cache.get_stats()
     
     # Retourner les statistiques même si Redis n'est pas activé
@@ -26,6 +25,7 @@ async def get_cache_stats() -> Dict[str, Any]:
 
 @router.post("/invalidate")
 async def invalidate_cache_pattern(
+    request: Request,
     pattern: str = "*",
     _admin=Depends(require_role("admin")),
 ) -> Dict[str, Any]:
@@ -38,7 +38,7 @@ async def invalidate_cache_pattern(
     Returns:
         Nombre de clés supprimées
     """
-    cache = get_cache_service()
+    cache = request.app.state.cache
     
     if not cache.enabled:
         raise HTTPException(
@@ -57,6 +57,7 @@ async def invalidate_cache_pattern(
 
 @router.post("/flush")
 async def flush_cache(
+    request: Request,
     _admin=Depends(require_role("admin")),
 ) -> Dict[str, Any]:
     """
@@ -65,7 +66,7 @@ async def flush_cache(
     Returns:
         Confirmation de l'opération
     """
-    cache = get_cache_service()
+    cache = request.app.state.cache
     
     if not cache.enabled:
         raise HTTPException(
@@ -88,14 +89,14 @@ async def flush_cache(
 
 
 @router.get("/health")
-async def cache_health() -> Dict[str, Any]:
+async def cache_health(request: Request) -> Dict[str, Any]:
     """
     Vérifie la santé du cache Redis.
     
     Returns:
         Statut de connexion et disponibilité
     """
-    cache = get_cache_service()
+    cache = request.app.state.cache
     
     return {
         "enabled": cache.enabled,

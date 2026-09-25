@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 from typing import List, Optional
 from sqlmodel import Session, select
+from sqlalchemy import func
 from pydantic import BaseModel
 
 from app.models import Dossier, Patient, Venue, DossierType
@@ -66,8 +67,7 @@ def get_dossier(session: Session, dossier_id: int) -> Optional[Dossier]:
     """Récupère un dossier par son ID."""
     return session.get(Dossier, dossier_id)
 
-def get_dossiers(
-    session: Session,
+def _build_dossiers_query(
     ej_id: Optional[int] = None,
     eg_id: Optional[int] = None,
     patient_id: Optional[int] = None,
@@ -78,8 +78,8 @@ def get_dossiers(
     admit_from: Optional[str] = None,
     admit_to: Optional[str] = None,
     current_state: Optional[str] = None,
-) -> List[Dossier]:
-    """Récupère une liste de dossiers filtrée.
+):
+    """Construit la requête filtrée commune au comptage et à la liste.
     
     Peut filtrer par EJ (entite_juridique_id directement) OU par EG (via la hiérarchie venue -> chambre -> ... -> pole -> EG).
     Si les deux sont fournis, EG a la priorité car il est plus spécifique.
@@ -137,7 +137,52 @@ def get_dossiers(
     if admit_to_dt:
         query = query.where(Dossier.admit_time < admit_to_dt + timedelta(days=1))
     
+    return query.distinct()
+
+
+def get_dossiers(
+    session: Session,
+    ej_id: Optional[int] = None,
+    eg_id: Optional[int] = None,
+    patient_id: Optional[int] = None,
+    dossier_type: Optional[DossierType] = None,
+    dossier_seq: Optional[int] = None,
+    uf: Optional[str] = None,
+    medecin: Optional[str] = None,
+    admit_from: Optional[str] = None,
+    admit_to: Optional[str] = None,
+    current_state: Optional[str] = None,
+    *,
+    offset: int | None = None,
+    limit: int | None = None,
+) -> List[Dossier]:
+    """Récupère une liste filtrée, éventuellement bornée en base."""
+    query = _build_dossiers_query(
+        ej_id=ej_id,
+        eg_id=eg_id,
+        patient_id=patient_id,
+        dossier_type=dossier_type,
+        dossier_seq=dossier_seq,
+        uf=uf,
+        medecin=medecin,
+        admit_from=admit_from,
+        admit_to=admit_to,
+        current_state=current_state,
+    ).order_by(Dossier.admit_time.desc(), Dossier.id.desc())
+    if offset is not None:
+        query = query.offset(offset)
+    if limit is not None:
+        query = query.limit(limit)
     return session.exec(query).all()
+
+
+def count_dossiers(
+    session: Session,
+    **filters,
+) -> int:
+    """Compte les dossiers filtrés sans matérialiser les lignes."""
+    query = _build_dossiers_query(**filters)
+    return session.exec(select(func.count()).select_from(query.subquery())).one()
 
 def update_dossier(
     session: Session,

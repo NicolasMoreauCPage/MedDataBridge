@@ -7,7 +7,9 @@ L'objectif principal est de fournir un environnement reproductible pour :
 - visualiser et manipuler des dossiers patients de démonstration ;
 - tester des parcours de cotation (CCAM/NGAP/UCD/LPP) et exporter des résultats.
 
-Ce dépôt contient une application FastAPI + Jinja2 (UI) avec une petite base SQLite d'exemples.
+Ce dépôt contient une application FastAPI + Jinja2 complète. SQLite est utilisé
+pour le développement et les tests locaux ; le déploiement Compose utilise
+PostgreSQL.
 
 ## 📚 Documentation
 
@@ -62,14 +64,14 @@ Créez et activez un environnement virtuel Python 3.10+ :
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 ```
 
 ### 2. Initialisation de la base de données (FULL)
 Un seul script pour tout créer :
 
 ```bash
-python init_db.py
+python3 init_db.py
 ```
 
 Cela crée automatiquement :
@@ -82,9 +84,9 @@ Cela crée automatiquement :
 
 **Options disponibles** :
 ```bash
-python init_db.py              # FULL (recommandé)
-python init_db.py --minimal    # Rapide : 1 seul patient
-python init_db.py --reset      # Recréer la DB depuis zéro
+python3 init_db.py              # FULL (recommandé)
+python3 init_db.py --minimal    # Rapide : 1 seul patient
+python3 init_db.py --reset      # Recréer la DB depuis zéro
 ```
 
 ### 3. Lancer le serveur

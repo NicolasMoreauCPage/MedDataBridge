@@ -95,6 +95,42 @@ def test_create_app_uses_injected_validated_settings():
     assert response.json()["info"]["title"] == "MedBridge test factory"
 
 
+def test_create_app_isolates_database_and_background_services(tmp_path):
+    from sqlmodel import SQLModel
+
+    from app.app import create_app
+
+    first = create_app(
+        Settings(
+            testing=True,
+            database_url=f"sqlite:///{tmp_path / 'first.db'}",
+            secret_key="first-factory-key",
+        )
+    )
+    second = create_app(
+        Settings(
+            testing=True,
+            database_url=f"sqlite:///{tmp_path / 'second.db'}",
+            secret_key="second-factory-key",
+        )
+    )
+
+    assert first.state.engine is not second.state.engine
+    assert first.state.session_factory is not second.state.session_factory
+    assert first.state.mllp_manager is not second.state.mllp_manager
+    assert first.state.scheduler is not second.state.scheduler
+    assert first.state.cache is not second.state.cache
+    assert first.state.cache.enabled is False
+    assert str(first.state.engine.url).endswith("first.db")
+    assert str(second.state.engine.url).endswith("second.db")
+
+    SQLModel.metadata.create_all(first.state.engine)
+    SQLModel.metadata.create_all(second.state.engine)
+    with TestClient(first) as first_client, TestClient(second) as second_client:
+        assert first_client.get("/ready").status_code == 200
+        assert second_client.get("/ready").status_code == 200
+
+
 def test_postgresql_engine_uses_a_compatible_pool_configuration():
     repository_root = Path(__file__).resolve().parents[2]
     result = subprocess.run(

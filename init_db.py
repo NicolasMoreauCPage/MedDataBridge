@@ -13,7 +13,7 @@ Usage:
     python init_db.py --with-cotations   # Ajoute cotations médicales réalistes
 
 Ce script orchestre dans l'ordre:
-1. Création du schéma (tables) via app.db.init_db()
+1. Migration du schéma via Alembic
 2. Vocabulaires standards (35 systèmes, 207 valeurs)
 3. Structure multi-EJ (4 EJ: CHU, hôpital, EHPAD, psy) + hiérarchie complète
 4. Endpoints MLLP/FHIR (12 endpoints: 3 par EJ)
@@ -29,25 +29,18 @@ Tous les appels sont idempotents: re-exécuter ce script est safe.
 """
 import argparse
 import sys
-import re
-import json
 from pathlib import Path
 from subprocess import run, CalledProcessError
-from typing import List, Tuple
 from datetime import datetime, timedelta
-from random import choice
 from sqlalchemy.engine.url import make_url
 
 
 # Imports pour les nouvelles fonctionnalités
 from sqlmodel import Session, select
-from app.models import Patient, Dossier, Venue, Mouvement, DossierType, Sequence
-from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique, IdentifierNamespace
-from app.models_structure import Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
-from app.models_structure import LocationPhysicalType, LocationServiceType
-from app.db import init_db as init_db_schema, engine, get_next_sequence
+from app.models import Patient, Dossier, DossierType, Sequence
+from app.db import engine, migrate_database
+from app.utils.hl7_detector import HL7Detector
 from config.settings import settings
-from random import choice
 
 # Import seed helpers from maintenance script
 from scripts.maintenance.init_db import seed_rich, seed_minimal, seed_demo_scenarios, _add_cotations_to_existing_dossiers
@@ -106,7 +99,6 @@ def _ensure_sequences(session: Session) -> None:
 
 def _add_cotations_to_dossier(session: Session, dossier: Dossier, cotation_type: str = "MIXED") -> int:
     """Ajoute des cotations à un dossier. Retourne le nombre de cotations ajoutées."""
-    from datetime import timedelta
     from app.models import CCAMAct, NGAPAct, UCDAct, LPPAct
     
     admit_time = dossier.admit_time
@@ -203,9 +195,6 @@ def _add_cotations_to_dossier(session: Session, dossier: Dossier, cotation_type:
     return total_count
 
 
-
-# --- Utilitaires HL7 ---
-from app.utils.hl7_detector import HL7Detector
 
 def extract_trigger_from_message(hl7_msg: str) -> str:
     """Extrait le trigger event (ex: A01, A02) d'un message HL7"""
@@ -471,8 +460,7 @@ def seed_cotations_to_dossiers(engine) -> int:
     - LPP: dispositifs médicaux
     """
     from sqlmodel import Session
-    from datetime import datetime, timedelta
-    from app.models import Patient, Dossier, DossierType, CCAMAct, NGAPAct, UCDAct, LPPAct
+    from app.models import Dossier, CCAMAct, NGAPAct, UCDAct, LPPAct
     
     total_cotations = 0
     
@@ -705,6 +693,7 @@ Utilisez les options ci-dessous uniquement pour personnaliser.
             parser.error("--reset est disponible uniquement avec une base SQLite fichier")
         if DB_PATH.exists():
             print(f"→ Suppression de {DB_PATH}...")
+            engine.dispose()
             DB_PATH.unlink()
             print("✓ Base supprimée\n")
 
@@ -713,26 +702,8 @@ Utilisez les options ci-dessous uniquement pour personnaliser.
     print("ÉTAPE 1/4 : Création du schéma (tables)")
     print("=" * 60)
     try:
-        from app.db import engine
-        from app import models  # Importe tous les modèles pour SQLModel.metadata
-        from app import models_scenarios
-        from app import models_workflows
-        from app import models_shared
-        from app import models_structure
-        from sqlmodel import SQLModel
-
-        # Créer les tables manuellement sans déclencher l'import automatique des templates
-        SQLModel.metadata.create_all(engine)
-
-        # Activer WAL uniquement pour la base SQLite réellement configurée.
-        if DB_PATH is not None:
-            import sqlite3
-            DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-            conn = sqlite3.connect(DB_PATH)
-            conn.execute("PRAGMA journal_mode=WAL;")
-            conn.close()
-
-        print("✓ Tables créées\n")
+        migrate_database(settings.database_url)
+        print("✓ Migrations Alembic appliquées\n")
     except Exception as e:
         print(f"✗ Échec création tables: {e}")
         sys.exit(1)
@@ -831,8 +802,6 @@ Utilisez les options ci-dessous uniquement pour personnaliser.
         print("ÉTAPE 8/8 : Ajout des cotations médicales réalistes")
         print("=" * 60)
         try:
-            from datetime import timedelta
-            from app.models import CCAMAct, NGAPAct, UCDAct, LPPAct
             
             _add_cotations_to_existing_dossiers()
             print("✓ Cotations ajoutées aux dossiers\n")

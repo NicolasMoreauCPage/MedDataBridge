@@ -5,6 +5,7 @@ from sqlmodel import Session
 import logging
 
 from app.db import get_session
+from app.dependencies.request_data import read_body
 from app.services.pix_pdq_manager import PIXPDQManager
 from app.services.mllp import build_ack
 from app.models_endpoints import MessageLog
@@ -61,14 +62,13 @@ async def ihe_dashboard(request: Request):
 
 # Routes HL7v2 PIX/PDQ
 @router.post("/pix/query")
-async def pix_query(request: Request, session: Session = Depends(get_session)):
+def pix_query(body: bytes = Depends(read_body), session: Session = Depends(get_session)):
     """
     Point d'entrée pour les requêtes PIX (QBP^Q23).
     Correspond au profil IHE PIX Query [ITI-9].
     """
     try:
-        msg = await request.body()
-        msg = msg.decode("utf-8") if isinstance(msg, bytes) else str(msg)
+        msg = body.decode("utf-8") if isinstance(body, bytes) else str(body)
         success, error, identifiers = pix_pdq_manager.handle_pix_query(msg, session)
         
         # Logger la requête
@@ -113,14 +113,13 @@ async def pix_query(request: Request, session: Session = Depends(get_session)):
         return build_ack(msg, ack_code="AR", text=str(e))
 
 @router.post("/pdq/query")
-async def pdq_query(request: Request, session: Session = Depends(get_session)):
+def pdq_query(body: bytes = Depends(read_body), session: Session = Depends(get_session)):
     """
     Point d'entrée pour les requêtes PDQ (QBP^Q22).
     Correspond au profil IHE PDQ Query [ITI-21].
     """
     try:
-        msg = await request.body()
-        msg = msg.decode("utf-8") if isinstance(msg, bytes) else str(msg)
+        msg = body.decode("utf-8") if isinstance(body, bytes) else str(body)
         
         # Validate basic HL7 structure
         if not msg.startswith("MSH|") or "\r" not in msg:
@@ -226,17 +225,6 @@ def pdqm_search(
         params = {k: v for k, v in params.items() if v is not None}
         
         result = pix_pdq_manager.handle_pdqm_query(params, session)
-        
-        # Logger la requête
-        log = MessageLog(
-            direction="in",
-            kind="PDQm",
-            payload=str(params),
-            status="processed",
-            created_at=datetime.utcnow()
-        )
-        session.add(log)
-        session.commit()
         
         return JSONResponse(content=result)
     except ValueError as e:

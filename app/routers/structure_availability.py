@@ -29,8 +29,7 @@ def structure_availability_search(
     uf_id: Optional[int] = Query(None),
 ):
     services = session.exec(select(Service).order_by(Service.name)).all()
-    if apply_scheduled_status(services):
-        session.commit()
+    apply_scheduled_status(services)
 
     service_ids = [svc.id for svc in services if not service_type or svc.service_type == service_type]
     available_ufs_query = select(UniteFonctionnelle).order_by(UniteFonctionnelle.name)
@@ -40,8 +39,7 @@ def structure_availability_search(
         else:
             available_ufs_query = available_ufs_query.where(False)
     ufs = session.exec(available_ufs_query).all()
-    if apply_scheduled_status(ufs):
-        session.commit()
+    apply_scheduled_status(ufs)
 
     results = []
     if service_type or uf_id:
@@ -108,27 +106,25 @@ def _fetch_available_lits(
         query = query.where(UniteFonctionnelle.id == uf_id)
 
     lits = session.exec(query).scalars().all()
-    changed = apply_scheduled_status(lits)
+    apply_scheduled_status(lits)
     for lit in lits:
-        if lit.chambre and apply_scheduled_status([lit.chambre]):
-            changed = True
+        if lit.chambre:
+            apply_scheduled_status([lit.chambre])
         uh = getattr(lit.chambre, "unite_hebergement", None)
-        if uh and apply_scheduled_status([uh]):
-            changed = True
+        if uh:
+            apply_scheduled_status([uh])
         uf = getattr(uh, "unite_fonctionnelle", None) if uh else None
-        if uf and apply_scheduled_status([uf]):
-            changed = True
+        if uf:
+            apply_scheduled_status([uf])
         service = getattr(uf, "service", None) if uf else None
-        if service and apply_scheduled_status([service]):
-            changed = True
+        if service:
+            apply_scheduled_status([service])
         pole = getattr(service, "pole", None) if service else None
-        if pole and apply_scheduled_status([pole]):
-            changed = True
+        if pole:
+            apply_scheduled_status([pole])
         eg = getattr(pole, "entite_geo", None) if pole else None
-        if eg and apply_scheduled_status([eg]):
-            changed = True
-    if changed:
-        session.commit()
+        if eg:
+            apply_scheduled_status([eg])
     # Filtrer les lits actifs après application
     return [lit for lit in lits if lit.status == LocationStatus.ACTIVE]
 

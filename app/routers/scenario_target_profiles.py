@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session, select
 
 from app.db import get_session
+from app.dependencies.request_data import read_form_data
 from app.models_endpoints import SystemEndpoint
 from app.models_practitioners import MedecinResponsable
 from app.models_scenario_target_profiles import ScenarioTargetLocation, ScenarioTargetProfile
@@ -86,13 +87,12 @@ def _profile_form(request: Request, session: Session, profile: Optional[Scenario
 
 
 @router.post("/{profile_id}/save")
-async def save_profile_async(
-    profile_id: int, request: Request, session: Session = Depends(get_session),
+def save_profile_async(
+    profile_id: int, request: Request, session: Session = Depends(get_session), form=Depends(read_form_data),
 ):
     profile = session.get(ScenarioTargetProfile, profile_id)
     if not profile:
         raise HTTPException(status_code=404, detail="Profil de destination introuvable")
-    form = await request.form()
     profile.name = (form.get("name") or "").strip() or None
     profile.description = (form.get("description") or "").strip() or None
     profile.entite_juridique_id = int(form["entite_juridique_id"]) if form.get("entite_juridique_id") else None

@@ -17,8 +17,7 @@ from datetime import datetime
 import logging
 
 from sqlmodel import SQLModel, create_engine, Session, select, text
-from sqlalchemy.engine.url import make_url
-from sqlalchemy import event, inspect
+from sqlalchemy import event
 from pathlib import Path
 from typing import Optional
 
@@ -45,7 +44,6 @@ from app import models_workflows  # noqa: F401 - ORM registry
 
 
 # Use in-memory SQLite for tests, file-based otherwise
-import os
 from sqlalchemy.pool import StaticPool
 
 # Import de la configuration centralisée
@@ -62,13 +60,39 @@ logger = logging.getLogger(__name__)
 _running_under_pytest = any("pytest" in arg for arg in sys.argv)
 testing_flag = bool(settings.testing or _running_under_pytest)
 
+
+def create_database_engine(runtime_settings=settings, *, in_memory: bool = False):
+    """Construit un moteur isolé sans modifier l'état global du module."""
+    from sqlalchemy.pool import QueuePool
+
+    database_url = "sqlite:///:memory:" if in_memory else runtime_settings.database_url
+    is_sqlite = database_url.lower().startswith("sqlite")
+    engine_kwargs = {
+        "echo": runtime_settings.db_echo,
+        "pool_pre_ping": True,
+        "pool_recycle": 3600,
+    }
+    if is_sqlite:
+        engine_kwargs["connect_args"] = {
+            "check_same_thread": False,
+            "timeout": 30.0,
+        }
+        if database_url in {"sqlite://", "sqlite:///:memory:"}:
+            engine_kwargs["poolclass"] = StaticPool
+    else:
+        engine_kwargs.update(
+            {
+                "poolclass": QueuePool,
+                "pool_size": runtime_settings.db_pool_size,
+                "max_overflow": runtime_settings.db_max_overflow,
+                "pool_timeout": runtime_settings.db_pool_timeout,
+            }
+        )
+    return create_engine(database_url, **engine_kwargs)
+
+
 if testing_flag:
-    engine = create_engine(
-        "sqlite:///:memory:",
-        echo=False,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
+    engine = create_database_engine(settings, in_memory=True)
     # When running tests in-process (TESTING=1) we need the schema
     # created on the in-memory engine so TestClient-based tests can
     # operate without requiring an explicit init_db() call.
@@ -79,62 +103,24 @@ if testing_flag:
         # manage their own schema creation as some fixtures do.
         logger.debug("Test schema creation deferred to fixtures", exc_info=exc)
 else:
-    # Configuration avancée du pool de connexions pour SQLite
-    from sqlalchemy.pool import StaticPool, QueuePool
+    engine = create_database_engine(settings)
 
-    is_sqlite = "sqlite" in settings.database_url.lower()
-    # Préparer les arguments du moteur selon le type de base. StaticPool est
-    # utile à SQLite local, mais incompatible avec les options de dimensionnement
-    # envoyées à PostgreSQL par le déploiement Compose.
-    engine_kwargs = {
-        "echo": settings.db_echo,
-        "pool_pre_ping": True,  # Vérifier les connexions avant utilisation
-        "pool_recycle": 3600,  # Recycler les connexions après 1 heure
-    }
 
-    if not is_sqlite:
-        engine_kwargs.update({
-            "pool_size": settings.db_pool_size,
-            "max_overflow": settings.db_max_overflow,
-            "pool_timeout": settings.db_pool_timeout,
-        })
-    else:
-        engine_kwargs["poolclass"] = StaticPool if not testing_flag else QueuePool
-        # Pour SQLite, paramètres spécifiques
-        engine_kwargs["connect_args"] = {
-            "check_same_thread": False,  # Permettre l'accès multi-thread pour SQLite
-            "timeout": 30.0,  # Timeout de connexion
-        }
+def make_session_dependency(database_engine):
+    """Crée une dépendance FastAPI liée à un moteur précis."""
+    def _get_runtime_session():
+        session = Session(database_engine)
+        try:
+            yield session
+        finally:
+            session.close()
 
-    engine = create_engine(settings.database_url, **engine_kwargs)
+    return _get_runtime_session
 
-def _ensure_scenario_authoring_columns() -> None:
-    """Rend le démarrage local compatible avec une base créée avant le wizard.
 
-    Les déploiements appliquent la migration Alembic dédiée. Cette garde
-    idempotente évite néanmoins qu'un lancement local via ``init_db()`` casse
-    sur une base SQLite historique, puisque ``create_all`` n'ajoute pas les
-    colonnes aux tables déjà existantes.
-    """
-    inspector = inspect(engine)
-    if "interopscenario" not in inspector.get_table_names():
-        return
-    columns = {column["name"] for column in inspector.get_columns("interopscenario")}
-    indexes = {index["name"] for index in inspector.get_indexes("interopscenario")}
-    with engine.begin() as connection:
-        if "authoring_status" not in columns:
-            connection.execute(text(
-                "ALTER TABLE interopscenario "
-                "ADD COLUMN authoring_status VARCHAR NOT NULL DEFAULT 'ready'"
-            ))
-        if "authoring_metadata_json" not in columns:
-            connection.execute(text("ALTER TABLE interopscenario ADD COLUMN authoring_metadata_json TEXT"))
-        if "ix_interopscenario_authoring_status" not in indexes:
-            connection.execute(text(
-                "CREATE INDEX IF NOT EXISTS ix_interopscenario_authoring_status "
-                "ON interopscenario (authoring_status)"
-            ))
-
+def make_session_factory(database_engine):
+    """Crée une fabrique de sessions courtes liée à un moteur précis."""
+    return lambda: Session(database_engine)
 
 def migrate_database(database_url: str | None = None) -> None:
     """Met une base applicative à jour exclusivement via Alembic.
@@ -153,99 +139,15 @@ def migrate_database(database_url: str | None = None) -> None:
 
 
 def init_db() -> None:
-    """Initialise un schéma de test isolé avec SQLModel.
+    """Initialise la base par l'unique chemin de schéma supporté.
 
-    La production ne doit pas appeler cette fonction : le démarrage
-    applicatif utilise :func:`migrate_database`, et les déploiements exécutent
-    la même commande ``alembic upgrade head`` avant Uvicorn. Cette compatibilité
-    est conservée pour les fixtures SQLModel en mémoire et les scripts de test
-    qui construisent volontairement un schéma jetable.
+    Les tests en mémoire utilisent la metadata pour rester rapides. Tous les
+    autres environnements passent obligatoirement par Alembic.
     """
-    SQLModel.metadata.create_all(engine)
-    _ensure_scenario_authoring_columns()
-    # Optimisations SQLite avancées pour la performance et la robustesse
-    try:
-        import sqlite3
-        # Always inspect the URL of the engine actually in use.  In tests the
-        # engine is deliberately in-memory while ``settings.database_url`` may
-        # still point at the local development file; using the setting here
-        # made test setup mutate that file.
-        db_url = make_url(str(engine.url))
-        if db_url.drivername != "sqlite":
-            # Les PRAGMA/index spécifiques SQLite ne s'appliquent pas aux autres SGBD.
-            if init_scenario_templates:
-                with Session(engine) as _s:
-                    init_scenario_templates(_s)
-            return
-
-        sqlite_db_path = db_url.database
-        # SQLite in-memory: aucun fichier à optimiser.
-        if not sqlite_db_path or sqlite_db_path == ":memory:":
-            if init_scenario_templates:
-                with Session(engine) as _s:
-                    init_scenario_templates(_s)
-            return
-
-        # Normaliser les chemins relatifs (ex: ./data/medbridge.db)
-        sqlite_db_path = os.path.abspath(sqlite_db_path)
-        os.makedirs(os.path.dirname(sqlite_db_path), exist_ok=True)
-        conn = sqlite3.connect(sqlite_db_path)
-
-        # Optimisations de performance
-        conn.execute("PRAGMA journal_mode=WAL;")  # Mode WAL pour accès concurrents
-        conn.execute("PRAGMA synchronous=NORMAL;")  # Balance performance/sécurité
-        conn.execute("PRAGMA cache_size=-64000;")  # 64MB cache (négatif = KB)
-        conn.execute("PRAGMA temp_store=MEMORY;")  # Tables temporaires en RAM
-        conn.execute("PRAGMA mmap_size=268435456;")  # 256MB mmap pour gros fichiers
-        conn.execute("PRAGMA page_size=4096;")  # Taille de page optimisée
-
-        # Index pour les performances de recherche
-        # Patients
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_patient_family ON patient(family);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_patient_given ON patient(given);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_patient_identifier ON patient(identifier);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_patient_ght_context ON patient(ght_context_id);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_patient_entite_juridique ON patient(entite_juridique_id);")
-
-        # Dossiers
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_dossier_patient_id ON dossier(patient_id);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_dossier_entite_juridique ON dossier(entite_juridique_id);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_dossier_type ON dossier(dossier_type);")
-
-        # Venues
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_venue_entite_juridique ON venue(entite_juridique_id);")
-
-        # Mouvements
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_mouvement_venue_id ON mouvement(venue_id);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_mouvement_date ON mouvement(\"when\");")
-
-        # Messages et endpoints
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_message_log_created_at ON messagelog(created_at);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_message_log_endpoint_id ON messagelog(endpoint_id);")
-
-        # Vocabulaires
-        # ``VocabularyValue`` references its system through ``system_id``;
-        # ``system`` was an obsolete column name and aborted the remaining
-        # SQLite initialization (including FTS setup) on every fresh start.
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_vocabulary_system ON vocabularyvalue(system_id);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_vocabulary_code ON vocabularyvalue(code);")
-
-        # Try to create an FTS5 table for patient text search (optional, best-effort)
-        try:
-            # FTS5 requires the module compiled in SQLite. This is a best-effort, no-op if unavailable.
-            conn.execute("CREATE VIRTUAL TABLE IF NOT EXISTS patient_fts USING fts5(family, given, content='');")
-            # Populate FTS table from existing patients
-            conn.execute("INSERT INTO patient_fts(rowid, family, given) SELECT id, family, given FROM patient WHERE id NOT IN (SELECT rowid FROM patient_fts);")
-        except Exception as exc:
-            # ignore if FTS not available
-            logger.debug("SQLite FTS unavailable", exc_info=exc)
-
-        conn.commit()
-        conn.close()
-        logger.info("Optimisations SQLite appliquées avec succès sur %s", sqlite_db_path)
-    except Exception as e:
-        logger.warning("Erreur lors des optimisations SQLite: %s", e)
-    # Initialisation idempotente des templates de scénarios abstraits (IHE, démo...)
+    if testing_flag:
+        SQLModel.metadata.create_all(engine)
+    else:
+        migrate_database(str(engine.url))
     if init_scenario_templates:
         with Session(engine) as _s:
             init_scenario_templates(_s)

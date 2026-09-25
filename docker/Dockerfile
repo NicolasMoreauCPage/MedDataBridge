@@ -2,11 +2,10 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# ``requirements.txt`` is the single dependency manifest used by local work,
-# CI and this image. libpq is required by psycopg's PostgreSQL binary package.
-COPY requirements.txt ./
+# L'image installe uniquement le graphe runtime verrouillé et hashé.
+COPY requirements-runtime.lock ./
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+    && pip install --no-cache-dir --require-hashes -r requirements-runtime.lock
 
 COPY . .
 RUN mkdir -p /app/data /app/logs \

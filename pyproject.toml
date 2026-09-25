@@ -8,7 +8,7 @@ version = "1.1.0"
 authors = [
   { name="Nicolas", email="author@example.com" },
 ]
-description = "POC FastAPI pour tester l'interopérabilité FHIR et HL7v2"
+description = "Plateforme de qualification et de test d'interopérabilité HL7, IHE PAM, HPRIM et FHIR"
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
@@ -18,21 +18,12 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/whatever/MedData_Bridge"
-"Bug Tracker" = "https://github.com/whatever/MedData_Bridge/issues"
+"Homepage" = "https://github.com/NicolasMoreauCPage/MedDataBridge"
+"Bug Tracker" = "https://github.com/NicolasMoreauCPage/MedDataBridge/issues"
 
-# ``requirements.txt`` is the canonical dependency manifest for local, CI and
-# Docker installations. Keeping dependencies out of package metadata prevents
-# a second, divergent resolver source.
+# Les manifestes canoniques sont requirements-runtime.txt et
+# requirements-dev.txt. Le paquet Python ne maintient pas une troisième liste.
 dependencies = []
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-# Ignorer les scripts de test manuels à la racine
-addopts = "--ignore=test_api_structure.py --ignore=test_endpoint_detail.py --ignore=test_file_polling.py --ignore=test_service_hierarchy.py --ignore=test_service_uf_link.py --ignore=test_template_render.py --ignore=tools/test_injection_complete.py"

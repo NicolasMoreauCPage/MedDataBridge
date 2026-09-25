@@ -1,53 +1,14 @@
-# Déploiement IntegraSanté
+# Livrables de déploiement
 
-Ce répertoire contient tous les fichiers et scripts nécessaires au déploiement du projet.
+Le code applicatif canonique est exclusivement dans `app/`. Les anciennes
+copies placées sous `deployment/general/app` et `deployment/postgresql/app`
+ont été supprimées afin d'éviter les divergences.
 
-## Structure
-
-### `general/`
-
-Scripts et documentation de déploiement généraux :
-
-- Guides d'installation (NGINX, OpenSSL, Python)
-- Scripts de déploiement
-- Checklists de déploiement
-- Configuration Alembic
-
-### `postgresql/`
-
-Déploiement spécifique PostgreSQL :
-
-- Scripts adaptés pour PostgreSQL
-- Configuration spécifique
-- Checklists PostgreSQL
-
-### `packages/`
-
-Packages Python hors-ligne pour déploiement :
-
-- `packages/` : Packages standards
-- `packages-prod/` : Packages de production
-- `packages-server/` : Packages serveur
-- `pip_pkgs/` : Cache pip
-
-## Utilisation
-
-### Déploiement standard
+Créer un paquet source depuis la révision courante :
 
 ```bash
-cd deployment/general
-# Suivre INSTALLATION_RAPIDE.md
+python3 scripts/build_deployment_bundle.py --output dist/meddata-bridge.zip
 ```
 
-### Déploiement PostgreSQL
-
-```bash
-cd deployment/postgresql
-# Suivre CHECKLIST.md
-```
-
-### Installation hors-ligne
-
-```bash
-pip install --no-index --find-links=deployment/packages/packages-prod -r requirements-production.txt
-```
+Pour un environnement hors ligne, ajouter `--with-wheels`. Les roues sont
+téléchargées dans le livrable généré et ne sont pas versionnées dans Git.

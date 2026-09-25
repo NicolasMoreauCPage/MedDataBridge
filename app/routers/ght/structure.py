@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse
 from sqlmodel import Session
 
 from app.db import get_session
+from app.dependencies.request_data import read_form_data
 from app.utils.flash import flash
 from app.models_structure import (
     Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, LocationStatus, LocationMode, LocationServiceType
@@ -29,9 +30,8 @@ def new_pole_form(request: Request, context_id: int, ej_id: int, eg_id: int, ses
     return render_form(request, "Nouveau pôle", fields, action_url, cancel_url)
 
 @router.post("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/new")
-async def create_pole(request: Request, context_id: int, ej_id: int, eg_id: int, session: Session = Depends(get_session)):
+def create_pole(request: Request, context_id: int, ej_id: int, eg_id: int, session: Session = Depends(get_session), form_data=Depends(read_form_data)):
     context, entite, geo = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id)
-    form_data = await request.form()
     pole = Pole(
         identifier=form_data.get("identifier"), name=form_data.get("name"),
         short_name=maybe(form_data.get("short_name")),
@@ -56,9 +56,8 @@ def new_service_form(request: Request, context_id: int, ej_id: int, eg_id: int, 
     return render_form(request, f"Nouveau service pour {pole.name}", fields, action_url, cancel_url)
 
 @router.post("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/new")
-async def create_service(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, session: Session = Depends(get_session)):
+def create_service(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, session: Session = Depends(get_session), form_data=Depends(read_form_data)):
     context, entite, geo, pole = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id)
-    form_data = await request.form()
     service = Service(
         identifier=form_data.get("identifier"), name=form_data.get("name"),
         short_name=maybe(form_data.get("short_name")),
@@ -90,13 +89,12 @@ def edit_service_form(request: Request, context_id: int, ej_id: int, eg_id: int,
     return render_form(request, f"Modifier service {service.name}", fields, action_url, cancel_url)
 
 @router.post("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/edit")
-async def update_service(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, session: Session = Depends(get_session)):
+def update_service(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, session: Session = Depends(get_session), form_data=Depends(read_form_data)):
     context = get_context_or_404(session, context_id)
     entite = get_ej_or_404(session, context, ej_id)
     geo = get_entite_geo_or_404(session, entite, eg_id)
     pole = get_pole_or_404(session, geo, pole_id)
     service = get_service_or_404(session, pole, service_id)
-    form_data = await request.form()
     service.identifier = form_data.get("identifier")
     service.name = form_data.get("name")
     service.short_name = maybe(form_data.get("short_name"))
@@ -119,9 +117,8 @@ def new_uf_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_
     return render_form(request, f"Nouvelle UF pour {service.name}", fields, action_url, cancel_url)
 
 @router.post("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/new")
-async def create_uf(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, session: Session = Depends(get_session)):
+def create_uf(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, session: Session = Depends(get_session), form_data=Depends(read_form_data)):
     context, entite, geo, _pole, service = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id), get_service_or_404(session, pole_id, service_id)
-    form_data = await request.form()
     uf = UniteFonctionnelle(
         identifier=form_data.get("identifier"), name=form_data.get("name"),
         short_name=maybe(form_data.get("short_name")),
@@ -151,14 +148,13 @@ def edit_uf_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole
     return render_form(request, f"Modifier UF {uf.name}", fields, action_url, cancel_url)
 
 @router.post("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/{uf_id}/edit")
-async def update_uf(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, session: Session = Depends(get_session)):
+def update_uf(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, session: Session = Depends(get_session), form_data=Depends(read_form_data)):
     context = get_context_or_404(session, context_id)
     entite = get_ej_or_404(session, context, ej_id)
     geo = get_entite_geo_or_404(session, entite, eg_id)
     pole = get_pole_or_404(session, geo, pole_id)
     service = get_service_or_404(session, pole, service_id)
     uf = get_uf_or_404(session, service, uf_id)
-    form_data = await request.form()
     uf.identifier = form_data.get("identifier")
     uf.name = form_data.get("name")
     uf.short_name = maybe(form_data.get("short_name"))
@@ -179,9 +175,8 @@ def new_uh_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_
     return render_form(request, f"Nouvelle UH pour {uf.name}", fields, action_url, cancel_url)
 
 @router.post("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/{uf_id}/uh/new")
-async def create_uh(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, session: Session = Depends(get_session)):
+def create_uh(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, session: Session = Depends(get_session), form_data=Depends(read_form_data)):
     context, entite, geo, _pole, _service, uf = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id), get_service_or_404(session, pole_id, service_id), get_uf_or_404(session, service_id, uf_id)
-    form_data = await request.form()
     uh = UniteHebergement(
         identifier=form_data.get("identifier"), name=form_data.get("name"),
         short_name=maybe(form_data.get("short_name")),
@@ -212,7 +207,7 @@ def edit_uh_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole
     return render_form(request, f"Modifier UH {uh.name}", fields, action_url, cancel_url)
 
 @router.post("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/{uf_id}/uh/{uh_id}/edit")
-async def update_uh(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, uh_id: int, session: Session = Depends(get_session)):
+def update_uh(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, uh_id: int, session: Session = Depends(get_session), form_data=Depends(read_form_data)):
     context = get_context_or_404(session, context_id)
     entite = get_ej_or_404(session, context, ej_id)
     geo = get_entite_geo_or_404(session, entite, eg_id)
@@ -220,7 +215,6 @@ async def update_uh(request: Request, context_id: int, ej_id: int, eg_id: int, p
     service = get_service_or_404(session, pole, service_id)
     uf = get_uf_or_404(session, service, uf_id)
     uh = get_uh_or_404(session, uf, uh_id)
-    form_data = await request.form()
     uh.identifier = form_data.get("identifier")
     uh.name = form_data.get("name")
     uh.short_name = maybe(form_data.get("short_name"))
@@ -241,9 +235,8 @@ def new_chambre_form(request: Request, context_id: int, ej_id: int, eg_id: int, 
     return render_form(request, f"Nouvelle chambre pour {uh.name}", fields, action_url, cancel_url)
 
 @router.post("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/{uf_id}/uh/{uh_id}/chambres/new")
-async def create_chambre(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, uh_id: int, session: Session = Depends(get_session)):
+def create_chambre(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, uh_id: int, session: Session = Depends(get_session), form_data=Depends(read_form_data)):
     context, entite, geo, _pole, _service, _uf, uh = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id), get_service_or_404(session, pole_id, service_id), get_uf_or_404(session, service_id, uf_id), get_uh_or_404(session, uf_id, uh_id)
-    form_data = await request.form()
     chambre = Chambre(
         identifier=form_data.get("identifier"), name=form_data.get("name"),
         short_name=maybe(form_data.get("short_name")),
@@ -275,7 +268,7 @@ def edit_chambre_form(request: Request, context_id: int, ej_id: int, eg_id: int,
     return render_form(request, f"Modifier chambre {chambre.name}", fields, action_url, cancel_url)
 
 @router.post("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/{uf_id}/uh/{uh_id}/chambres/{chambre_id}/edit")
-async def update_chambre(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, uh_id: int, chambre_id: int, session: Session = Depends(get_session)):
+def update_chambre(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, uh_id: int, chambre_id: int, session: Session = Depends(get_session), form_data=Depends(read_form_data)):
     context = get_context_or_404(session, context_id)
     entite = get_ej_or_404(session, context, ej_id)
     geo = get_entite_geo_or_404(session, entite, eg_id)
@@ -284,7 +277,6 @@ async def update_chambre(request: Request, context_id: int, ej_id: int, eg_id: i
     uf = get_uf_or_404(session, service, uf_id)
     uh = get_uh_or_404(session, uf, uh_id)
     chambre = get_chambre_or_404(session, uh, chambre_id)
-    form_data = await request.form()
     chambre.identifier = form_data.get("identifier")
     chambre.name = form_data.get("name")
     chambre.short_name = maybe(form_data.get("short_name"))
@@ -320,7 +312,7 @@ def edit_lit_form(request: Request, context_id: int, ej_id: int, eg_id: int, pol
     return render_form(request, f"Modifier lit {lit.name}", fields, action_url, cancel_url)
 
 @router.post("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/{uf_id}/uh/{uh_id}/chambres/{chambre_id}/lits/{lit_id}/edit")
-async def update_lit(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, uh_id: int, chambre_id: int, lit_id: int, session: Session = Depends(get_session)):
+def update_lit(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, uh_id: int, chambre_id: int, lit_id: int, session: Session = Depends(get_session), form_data=Depends(read_form_data)):
     context = get_context_or_404(session, context_id)
     entite = get_ej_or_404(session, context, ej_id)
     geo = get_entite_geo_or_404(session, entite, eg_id)
@@ -330,7 +322,6 @@ async def update_lit(request: Request, context_id: int, ej_id: int, eg_id: int, 
     uh = get_uh_or_404(session, uf, uh_id)
     chambre = get_chambre_or_404(session, uh, chambre_id)
     lit = get_lit_or_404(session, chambre, lit_id)
-    form_data = await request.form()
     lit.identifier = form_data.get("identifier")
     lit.name = form_data.get("name")
     lit.short_name = maybe(form_data.get("short_name"))

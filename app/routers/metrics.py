@@ -4,7 +4,6 @@ from fastapi.responses import HTMLResponse
 from fastapi import Request as FastAPIRequest
 from typing import Optional, Dict, Any
 from app.utils.structured_logging import metrics
-from app.services.cache_service import get_cache_service
 
 
 
@@ -128,7 +127,7 @@ async def health_check():
 
 
 @router.get("/cache", response_model=dict)
-async def get_cache_metrics() -> Dict[str, Any]:
+async def get_cache_metrics(request: Request) -> Dict[str, Any]:
     """
     Récupère les métriques de cache Redis.
     
@@ -144,7 +143,7 @@ async def get_cache_metrics() -> Dict[str, Any]:
         - keyspace_misses: Nombre de miss
         - hit_rate: Taux de succès en %
     """
-    cache = get_cache_service()
+    cache = request.app.state.cache
     stats = cache.get_stats()
     
     # Ajouter des métriques calculées même si Redis n'est pas activé
@@ -160,7 +159,7 @@ async def get_cache_metrics() -> Dict[str, Any]:
 
 
 @router.get("/cache/health", response_model=dict)
-async def cache_health_check() -> Dict[str, Any]:
+def cache_health_check(request: Request) -> Dict[str, Any]:
     """
     Vérifie la santé du service de cache.
     
@@ -169,7 +168,7 @@ async def cache_health_check() -> Dict[str, Any]:
     Returns:
         Statut du cache (healthy/unhealthy)
     """
-    cache = get_cache_service()
+    cache = request.app.state.cache
     
     if not cache.enabled:
         return {
@@ -178,31 +177,17 @@ async def cache_health_check() -> Dict[str, Any]:
             "enabled": False
         }
     
-    # Test simple de connectivité
-    try:
-        test_key = "health:check"
-        cache.set(test_key, "ok", ttl=5)
-        value = cache.get(test_key)
-        cache.delete(test_key)
-        
-        if value == "ok":
-            return {
-                "status": "healthy",
-                "message": "Cache service operational",
-                "enabled": True
-            }
-        else:
-            return {
-                "status": "degraded",
-                "message": "Cache reads not working correctly",
-                "enabled": True
-            }
-    except Exception as e:
+    if cache.ping():
         return {
-            "status": "unhealthy",
-            "message": f"Cache error: {str(e)}",
-            "enabled": False
+            "status": "healthy",
+            "message": "Cache service operational",
+            "enabled": True,
         }
+    return {
+        "status": "unhealthy",
+        "message": "Cache ping failed",
+        "enabled": cache.enabled,
+    }
 
 
 # ========== UI Routes (HTML) ==========

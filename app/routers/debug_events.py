@@ -72,9 +72,8 @@ def entity_events_status(session: Session = Depends(get_session)):
 
 
 @router.post("/entity-events/test-create-patient")
-async def test_create_patient(session: Session = Depends(get_session)):
+def test_create_patient(session: Session = Depends(get_session)):
     """Test endpoint: create a patient and check if emission happens."""
-    import asyncio
     import time
     
     # Count messages before
@@ -94,8 +93,8 @@ async def test_create_patient(session: Session = Depends(get_session)):
     session.add(patient)
     session.commit()
     
-    # Wait a bit
-    await asyncio.sleep(2)
+    # This route is synchronous, so the wait occurs in FastAPI's worker pool.
+    time.sleep(2)
     
     # Count messages after
     session.expire_all()

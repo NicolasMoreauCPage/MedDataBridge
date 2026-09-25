@@ -1,6 +1,11 @@
 import os
+import sys
+from datetime import datetime
 from pathlib import Path
+
 import pytest
+from fastapi.testclient import TestClient
+from sqlmodel import SQLModel, Session
 
 os.environ.setdefault("TESTING", "1")
 
@@ -11,49 +16,6 @@ os.environ.setdefault("TESTING", "1")
 import warnings
 from sqlalchemy.exc import SAWarning
 warnings.filterwarnings("ignore", category=SAWarning)
-
-# Mock cache service for tests
-class MockCacheService:
-    def __init__(self):
-        self.blacklist = set()
-
-    def exists(self, key):
-        return key in self.blacklist
-
-    def set(self, key, value, ttl=None):
-        self.blacklist.add(key)
-        return True
-
-    def get(self, key):
-        # Return None for all keys in tests to simulate empty cache
-        # This avoids returning mock data that doesn't match expected schemas
-        return None
-
-    def get_stats(self):
-        return {
-            "enabled": True,
-            "used_memory": "1MB",
-            "total_connections": 10,
-            "total_commands": 100,
-            "keyspace_hits": 80,
-            "keyspace_misses": 20,
-            "hit_rate": 80.0
-        }
-
-mock_cache = MockCacheService()
-
-# Mock the cache service module
-import sys
-from unittest.mock import MagicMock
-cache_service_mock = MagicMock()
-cache_service_mock.get_cache_service.return_value = mock_cache
-sys.modules['app.services.cache_service'] = cache_service_mock
-
-# Delay heavy imports until needed
-from datetime import datetime
-import asyncio
-
-
 
 # Correction: Ne pas override asyncio.run, laisser pytest-asyncio gérer l'event loop.
 
@@ -94,7 +56,7 @@ def setup_test_db(clean_db_tables):
     """Initialize the in-memory DB and create minimal records used by UI pages."""
     # Import here to avoid loading SQLAlchemy at conftest import time
     from app.db import init_db, session_factory
-    from app.models import Patient, Dossier, Venue
+    from app.models import Patient
     from app.models_structure import GHTContext
     from app.models_shared import SystemEndpoint
     from sqlmodel import select
@@ -135,126 +97,94 @@ def setup_test_db(clean_db_tables):
         # or create the required objects within the test itself using fixtures.
 
         # Create a minimal vocabulary system (administrative gender) used by some templates
-        try:
-            from app.models_vocabulary import VocabularySystem, VocabularyValue
-            if not sess.exec(select(VocabularySystem)).first():
-                vs = VocabularySystem(name="administrative-gender", label="Genre administratif", system_type="FHIR")
-                sess.add(vs)
-                sess.commit()
-                v_m = VocabularyValue(system_id=vs.id, code="M", display="Masculin")
-                v_f = VocabularyValue(system_id=vs.id, code="F", display="Féminin")
-                sess.add(v_m)
-                sess.add(v_f)
-                sess.commit()
-        except Exception:
-            pass
+        from app.models_vocabulary import VocabularySystem, VocabularyValue
+        if not sess.exec(select(VocabularySystem)).first():
+            vs = VocabularySystem(name="administrative-gender", label="Genre administratif", system_type="FHIR")
+            sess.add(vs)
+            sess.commit()
+            sess.add(VocabularyValue(system_id=vs.id, code="M", display="Masculin"))
+            sess.add(VocabularyValue(system_id=vs.id, code="F", display="Féminin"))
+            sess.commit()
 
         # If a Patient exists (we may have just created one), ensure it has an Identifier (IPP)
-        try:
-            from app.models_identifiers import Identifier as IdentifierModel
-            pat = sess.exec(select(Patient)).first()
-            if pat and not sess.exec(select(IdentifierModel).where(IdentifierModel.patient_id == pat.id)).first():
-                idn = IdentifierModel(value=str(pat.id), type="IPP", system="urn:medbridge:test:ipp", patient_id=pat.id)
-                sess.add(idn)
-                sess.commit()
-        except Exception:
-            pass
+        from app.models_identifiers import Identifier as IdentifierModel
+        pat = sess.exec(select(Patient)).first()
+        if pat and not sess.exec(select(IdentifierModel).where(IdentifierModel.patient_id == pat.id)).first():
+            idn = IdentifierModel(value=str(pat.id), type="IPP", system="urn:medbridge:test:ipp", patient_id=pat.id)
+            sess.add(idn)
+            sess.commit()
 
         # Seed additional common models to cover UI pages: Poles, Services, UF, Sequence entries
-        try:
-            from app.models_structure import Pole, Service, UniteFonctionnelle, EntiteJuridique, EntiteGeographique, IdentifierNamespace
-            from app.db import get_next_sequence
+        from app.models_structure import Pole, Service, UniteFonctionnelle
+        from app.db import get_next_sequence
 
-            # Ensure there's at least one Pole / Service / UF for structure pages
-            if not sess.exec(select(Pole)).first():
-                pole = Pole(identifier="POLE_TEST", name="Pôle Test")
-                sess.add(pole)
-                sess.commit()
-            if not sess.exec(select(Service)).first():
-                svc = Service(identifier="SRV_TEST", name="Service Test", pole_id=(pole.id if 'pole' in locals() else None))
-                sess.add(svc)
-                sess.commit()
-            if not sess.exec(select(UniteFonctionnelle)).first():
-                uf = UniteFonctionnelle(identifier="UF_TEST", name="UF Test", service_id=(svc.id if 'svc' in locals() else None))
-                sess.add(uf)
-                sess.commit()
+        pole = sess.exec(select(Pole)).first()
+        if not pole:
+            pole = Pole(identifier="POLE_TEST", name="Pôle Test")
+            sess.add(pole)
+            sess.commit()
+            sess.refresh(pole)
+        svc = sess.exec(select(Service)).first()
+        if not svc:
+            svc = Service(identifier="SRV_TEST", name="Service Test", pole_id=pole.id)
+            sess.add(svc)
+            sess.commit()
+            sess.refresh(svc)
+        if not sess.exec(select(UniteFonctionnelle)).first():
+            sess.add(UniteFonctionnelle(identifier="UF_TEST", name="UF Test", service_id=svc.id))
+            sess.commit()
 
-            # Ensure sequence entries exist for dossier/venue/mouvement to avoid insertion errors
-            try:
-                _ = get_next_sequence(sess, "dossier")
-                _ = get_next_sequence(sess, "venue")
-                _ = get_next_sequence(sess, "mouvement")
-                _ = get_next_sequence(sess, "patient")
-            except Exception:
-                # ignore if sequences cannot be created in this environment
-                pass
-        except Exception:
-            pass
+        for sequence_name in ("dossier", "venue", "mouvement", "patient"):
+            get_next_sequence(sess, sequence_name)
 
         # Endpoints with configs: create one MLLP and one FHIR config attached to SystemEndpoint
-        try:
-            from app.models_endpoints import MLLPConfig, FHIRConfig
-            from app.models_shared import SystemEndpoint as SEP
+        from app.models_endpoints import MLLPConfig, FHIRConfig
+        from app.models_shared import SystemEndpoint as SEP
 
-            # Create one SystemEndpoint with MLLP and FHIR configs if none exist
-            if not sess.exec(select(SEP)).first():
-                sep = SEP(name="Test Endpoint", kind="FILE", role="receiver", is_enabled=True)
-                sess.add(sep)
-                sess.commit()
-            else:
-                sep = sess.exec(select(SEP)).first()
+        sep = sess.exec(select(SEP)).first()
+        if not sep:
+            sep = SEP(name="Test Endpoint", kind="FILE", role="receiver", is_enabled=True)
+            sess.add(sep)
+            sess.commit()
+            sess.refresh(sep)
 
-            if not sess.exec(select(MLLPConfig)).first():
-                mcfg = MLLPConfig(name="Test MLLP", port=2575, sending_app="APP", sending_facility="FAC", endpoint_id=sep.id)
-                sess.add(mcfg)
-                sess.commit()
-            if not sess.exec(select(FHIRConfig)).first():
-                fcfg = FHIRConfig(name="Test FHIR", base_url="http://localhost:8080/fhir", endpoint_id=sep.id)
-                sess.add(fcfg)
-                sess.commit()
-        except Exception:
-            pass
+        if not sess.exec(select(MLLPConfig)).first():
+            sess.add(MLLPConfig(name="Test MLLP", port=2575, sending_app="APP", sending_facility="FAC", endpoint_id=sep.id))
+            sess.commit()
+        if not sess.exec(select(FHIRConfig)).first():
+            sess.add(FHIRConfig(name="Test FHIR", base_url="http://localhost:8080/fhir", endpoint_id=sep.id))
+            sess.commit()
 
         # Seed a basic InteropScenario and WorkflowScenario to cover scenario pages
-        try:
-            from app.models_scenarios import InteropScenario, InteropScenarioStep, ScenarioTemplate, ScenarioTemplateStep
-            from app.models_workflows import WorkflowScenario, WorkflowScenarioStep
+        from app.models_scenarios import InteropScenario, InteropScenarioStep, ScenarioTemplate, ScenarioTemplateStep
+        from app.models_workflows import WorkflowScenario, WorkflowScenarioStep
 
-            if not sess.exec(select(InteropScenario)).first():
-                sc = InteropScenario(key="test.scenario", name="Test Scenario", protocol="HL7")
-                sess.add(sc)
-                sess.commit()
-                step = InteropScenarioStep(scenario_id=sc.id, order_index=1, payload="MSH|||")
-                sess.add(step)
-                sess.commit()
+        if not sess.exec(select(InteropScenario)).first():
+            sc = InteropScenario(key="test.scenario", name="Test Scenario", protocol="HL7")
+            sess.add(sc)
+            sess.commit()
+            sess.add(InteropScenarioStep(scenario_id=sc.id, order_index=1, payload="MSH|||"))
+            sess.commit()
 
-            if not sess.exec(select(ScenarioTemplate)).first():
-                tpl = ScenarioTemplate(key="tpl.test", name="Template Test")
-                sess.add(tpl)
-                sess.commit()
-                tstep = ScenarioTemplateStep(template_id=tpl.id, order_index=1, semantic_event_code="PARCOURS_START")
-                sess.add(tstep)
-                sess.commit()
+        if not sess.exec(select(ScenarioTemplate)).first():
+            tpl = ScenarioTemplate(key="tpl.test", name="Template Test")
+            sess.add(tpl)
+            sess.commit()
+            sess.add(ScenarioTemplateStep(template_id=tpl.id, order_index=1, semantic_event_code="PARCOURS_START"))
+            sess.commit()
 
-            if not sess.exec(select(WorkflowScenario)).first():
-                ws = WorkflowScenario(name="WS Test", scenario_type="ADMISSION")
-                sess.add(ws)
-                sess.commit()
-                wstep = WorkflowScenarioStep(scenario_id=ws.id, order_index=0, action_type="CREER_PATIENT")
-                sess.add(wstep)
-                sess.commit()
-        except Exception:
-            pass
+        if not sess.exec(select(WorkflowScenario)).first():
+            ws = WorkflowScenario(name="WS Test", scenario_type="ADMISSION")
+            sess.add(ws)
+            sess.commit()
+            sess.add(WorkflowScenarioStep(scenario_id=ws.id, order_index=0, action_type="CREER_PATIENT"))
+            sess.commit()
 
         # Add a sample MessageLog to avoid empty logs in UI
-        try:
-            from app.models_shared import MessageLog
-            if not sess.exec(select(MessageLog)).first():
-                ml = MessageLog(direction="in", kind="FILE", payload="test", status="received")
-                sess.add(ml)
-                sess.commit()
-        except Exception:
-            pass
+        from app.models_shared import MessageLog
+        if not sess.exec(select(MessageLog)).first():
+            sess.add(MessageLog(direction="in", kind="FILE", payload="test", status="received"))
+            sess.commit()
     finally:
         sess.close()
 
@@ -264,9 +194,7 @@ def setup_test_db(clean_db_tables):
 @pytest.fixture(autouse=True, scope='function')
 def clean_db_tables():
     """Clean all database tables between tests to ensure test isolation."""
-    from app.db import session_factory, engine
-    from sqlalchemy import text
-    from app.models import SQLModel
+    from app.db import engine
     import time
 
     # Close all active connections to avoid "database table is locked" errors
@@ -294,6 +222,7 @@ def clean_db_tables():
 # Test categorization markers for better organization and selective running
 def pytest_configure(config):
     """Register custom markers for test categorization."""
+    os.environ["TESTING"] = "1"
     config.addinivalue_line("markers", "unit: Unit tests (fast, isolated)")
     config.addinivalue_line("markers", "integration: Integration tests (slower, test real components)")
     config.addinivalue_line("markers", "ui: UI tests (require browser/playwright)")
@@ -369,26 +298,6 @@ def test_dossier(isolated_session, test_patient):
     return dossier
 
 
-import os
-
-# Ensure the application runs in testing mode during pytest runs so
-# lifetime init (DB init, event listeners, background scheduler, MLLP)
-# are skipped. This avoids background emission workers opening new DB
-# sessions against the test DB which causes sqlite/SQLAlchemy errors.
-os.environ.setdefault("TESTING", "1")
-
-def pytest_configure(config):
-    # make sure other code reading env sees the flag early
-    os.environ["TESTING"] = "1"
-"""Test fixtures"""
-import pytest
-from sqlmodel import SQLModel, Session
-import os
-import sys
-from pathlib import Path
-from datetime import datetime
-from fastapi.testclient import TestClient
-
 # Indicate to the app that we're running tests
 os.environ.setdefault("TESTING", "1")
 # Enable auto-creation of UF placeholders for tests
@@ -463,61 +372,6 @@ def test_endpoints_fixture(session: Session):
     session.refresh(fhir_endpoint)
 
     return {"mllp": mllp_endpoint, "fhir": fhir_endpoint}
-
-
-@pytest.fixture(autouse=True)
-def setup_database():
-    """Autouse fixture: create schema and initialize minimal reference data for tests."""
-    from app.db import engine
-
-    # Create tables
-    SQLModel.metadata.create_all(engine)
-
-    # Initialize vocabularies / minimal reference data if available
-    with Session(engine) as session:
-        try:
-            from app.vocabulary_init import init_vocabularies
-
-            init_vocabularies(session)
-        except Exception:
-            # If init_vocabularies is not present or fails for tests,
-            # ignore and continue — tests can create needed rows explicitly.
-            pass
-
-        # Ensure there's at least one GHTContext to avoid queries failing
-        try:
-            from app.models_context import GHTContext
-            from sqlmodel import select
-
-            existing = session.exec(select(GHTContext)).first()
-            if not existing:
-                ctx = GHTContext(name="Test GHT", code="TEST_GHT", description="Auto init", is_active=True)
-                session.add(ctx)
-                session.commit()
-        except Exception:
-            # If the model/table isn't present or the query fails, continue.
-            pass
-
-    yield
-
-    # Drop tables after each test to keep isolation
-    from app.db import engine as _engine
-
-    # Dispose of all connections first to avoid locks
-    _engine.dispose()
-
-    # Add retry mechanism for table dropping
-    import time
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            SQLModel.metadata.drop_all(_engine)
-            break
-        except Exception as e:
-            if attempt == max_retries - 1:
-                print(f"Failed to drop tables after {max_retries} attempts: {e}")
-                raise
-            time.sleep(0.1)  # Brief pause before retry
 
 
 @pytest.fixture(name="client")

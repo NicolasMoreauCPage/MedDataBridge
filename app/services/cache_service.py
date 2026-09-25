@@ -10,6 +10,7 @@ import json
 import logging
 import os
 from typing import Optional, Any, Dict, List
+from fastapi import Request
 try:
     import redis
     from redis.exceptions import RedisError
@@ -32,7 +33,8 @@ class CacheService:
         port: int = 6379,
         db: int = 0,
         password: Optional[str] = None,
-        default_ttl: int = 3600  # 1 heure par défaut
+        default_ttl: int = 3600,  # 1 heure par défaut
+        enabled: bool = True,
     ):
         """
         Initialise la connexion Redis.
@@ -45,12 +47,15 @@ class CacheService:
             default_ttl: TTL par défaut en secondes
         """
         self.default_ttl = default_ttl
-        self.enabled = True
+        self.enabled = enabled
+        self.client = None
+
+        if not enabled:
+            return
         
         if redis is None:
             logger.warning("Redis library not installed; cache disabled (install 'redis' package to enable).")
             self.enabled = False
-            self.client = None
         else:
             try:
                 self.client = redis.Redis(
@@ -68,7 +73,6 @@ class CacheService:
             except RedisError as e:
                 logger.warning(f"⚠️  Cache Redis indisponible: {e}. Désactivation du cache.")
                 self.enabled = False
-                self.client = None
     
     def get(self, key: str) -> Optional[Any]:
         """
@@ -237,6 +241,16 @@ class CacheService:
         except RedisError as e:
             logger.error(f"Erreur récupération stats: {e}")
             return {"enabled": False, "error": str(e)}
+
+    def ping(self) -> bool:
+        """Teste la connexion sans créer ni supprimer de donnée."""
+        if not self.enabled or self.client is None:
+            return False
+        try:
+            return bool(self.client.ping())
+        except RedisError as e:
+            logger.error("Erreur ping cache: %s", e)
+            return False
     
     def _calculate_hit_rate(self, info: Dict) -> float:
         """Calcule le taux de succès du cache."""
@@ -274,6 +288,24 @@ class CacheService:
 _cache_instance: Optional[CacheService] = None
 
 
+def create_cache_service(*, enabled: bool = True) -> CacheService:
+    """Construit un cache autonome pour une instance applicative."""
+    connection = redis_settings_from_environment()
+    return CacheService(
+        host=connection["host"],
+        port=connection["port"],
+        db=connection["db"],
+        password=connection["password"],
+        default_ttl=int(os.getenv("CACHE_TTL", "3600")),
+        enabled=enabled,
+    )
+
+
+def get_request_cache(request: Request) -> CacheService:
+    """Retourne le cache appartenant à l'application de la requête."""
+    return request.app.state.cache
+
+
 def get_cache_service() -> CacheService:
     """
     Récupère l'instance singleton du service de cache.
@@ -284,16 +316,7 @@ def get_cache_service() -> CacheService:
     global _cache_instance
     
     if _cache_instance is None:
-        connection = redis_settings_from_environment()
-        cache_ttl = int(os.getenv("CACHE_TTL", "3600"))
-        
-        _cache_instance = CacheService(
-            host=connection["host"],
-            port=connection["port"],
-            db=connection["db"],
-            password=connection["password"],
-            default_ttl=cache_ttl
-        )
+        _cache_instance = create_cache_service()
     
     return _cache_instance
 

@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Query, Form
 from fastapi.responses import HTMLResponse, StreamingResponse
 from sqlmodel import Session, select, col
@@ -28,10 +30,12 @@ from app.services.vocabulary_lookup import get_vocabulary_options
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
+
 # Créer une fonction helper pour obtenir les templates avec les filtres
 def get_templates_with_filters(request: Request):
     """Retourne l'instance templates globale avec les filtres enregistrés"""
     return request.app.state.templates
+
 
 logger = logging.getLogger("routers.messages")
 
@@ -43,7 +47,9 @@ def _parse_filter_datetime(value: str, field_name: str) -> datetime:
     try:
         return datetime.fromisoformat(value)
     except ValueError as exc:
-        logger.warning("Invalid message date filter field=%s value=%r", field_name, value)
+        logger.warning(
+            "Invalid message date filter field=%s value=%r", field_name, value
+        )
         raise HTTPException(
             status_code=422,
             detail=f"Le filtre {field_name} doit être une date ISO 8601 valide.",
@@ -91,7 +97,10 @@ def _extract_ipp_and_dossier(payload: str) -> tuple[str, str]:
                 cand = cx[0] if cx else ""
                 id_type = cx[4] if len(cx) > 4 else ""
                 # Prefer identifiers explicitly typed as PI when present
-                if (id_type == "PI" or (isinstance(id_type, str) and id_type.endswith(".PI"))) and cand:
+                if (
+                    id_type == "PI"
+                    or (isinstance(id_type, str) and id_type.endswith(".PI"))
+                ) and cand:
                     ipp = cand
                 elif cand:
                     ipp = cand
@@ -108,6 +117,7 @@ def _extract_ipp_and_dossier(payload: str) -> tuple[str, str]:
                 dossier = cx[0] if cx else ""
     return ipp, dossier or account_number
 
+
 @router.get("", response_class=HTMLResponse)
 @router.get("/", response_class=HTMLResponse)
 def list_messages(
@@ -115,11 +125,11 @@ def list_messages(
     session: Session = Depends(get_session),
     endpoint_id: Optional[str] = Query(None),
     date_start: Optional[str] = Query(None),  # "2025-10-01T00:00"
-    date_end: Optional[str] = Query(None),    # "2025-10-31T23:59"
+    date_end: Optional[str] = Query(None),  # "2025-10-31T23:59"
     neg_ack_only: bool = Query(False),
     status: Optional[str] = Query(None),
-    kind: Optional[str] = Query(None),        # "MLLP" | "FHIR" | "HPRIM"
-    direction: Optional[str] = Query(None),   # "in" | "out"
+    kind: Optional[str] = Query(None),  # "MLLP" | "FHIR" | "HPRIM"
+    direction: Optional[str] = Query(None),  # "in" | "out"
     page: int = 1,
     limit: int = 50,
 ):
@@ -127,15 +137,19 @@ def list_messages(
 
     # Convertir endpoint_id en int si présent et non vide
     endpoint_id_int = _parse_optional_endpoint_id(endpoint_id)
-    
+
     if endpoint_id_int:
         stmt = stmt.where(MessageLog.endpoint_id == endpoint_id_int)
 
     if date_start:
-        stmt = stmt.where(MessageLog.created_at >= _parse_filter_datetime(date_start, "date_start"))
+        stmt = stmt.where(
+            MessageLog.created_at >= _parse_filter_datetime(date_start, "date_start")
+        )
 
     if date_end:
-        stmt = stmt.where(MessageLog.created_at <= _parse_filter_datetime(date_end, "date_end"))
+        stmt = stmt.where(
+            MessageLog.created_at <= _parse_filter_datetime(date_end, "date_end")
+        )
 
     if neg_ack_only or status == "error":
         stmt = stmt.where(col(MessageLog.status).in_(NEG_STATUSES))
@@ -144,7 +158,7 @@ def list_messages(
 
     if kind in ("MLLP", "FHIR", "HPRIM"):
         stmt = stmt.where(MessageLog.kind == kind)
-    
+
     if direction in ("in", "out"):
         stmt = stmt.where(MessageLog.direction == direction)
 
@@ -233,9 +247,13 @@ def list_rejections(
     if kind in ("MLLP", "FHIR", "HPRIM"):
         stmt = stmt.where(MessageLog.kind == kind)
     if date_start:
-        stmt = stmt.where(MessageLog.created_at >= _parse_filter_datetime(date_start, "date_start"))
+        stmt = stmt.where(
+            MessageLog.created_at >= _parse_filter_datetime(date_start, "date_start")
+        )
     if date_end:
-        stmt = stmt.where(MessageLog.created_at <= _parse_filter_datetime(date_end, "date_end"))
+        stmt = stmt.where(
+            MessageLog.created_at <= _parse_filter_datetime(date_end, "date_end")
+        )
 
     logs = session.exec(stmt.limit(limit)).all()
 
@@ -270,7 +288,9 @@ def list_rejections(
             g["last_message_id"] = m.id
 
     # Sort by most recent group first
-    grouped = sorted(groups.values(), key=lambda x: x["last_created"] or datetime.min, reverse=True)
+    grouped = sorted(
+        groups.values(), key=lambda x: x["last_created"] or datetime.min, reverse=True
+    )
 
     endpoints = session.exec(select(SystemEndpoint).order_by(SystemEndpoint.name)).all()
     ep_name = {e.id: e.name for e in endpoints}
@@ -309,31 +329,35 @@ def list_by_dossier(
 ):
     """Vue de tous les messages MLLP groupés par dossier et par statut global."""
     stmt = select(MessageLog).where(MessageLog.kind == "MLLP")
-    
+
     # Convertir endpoint_id en int si présent et non vide
     endpoint_id_int = _parse_optional_endpoint_id(endpoint_id)
-    
+
     if endpoint_id_int:
         stmt = stmt.where(MessageLog.endpoint_id == endpoint_id_int)
     if direction in ("in", "out"):
         stmt = stmt.where(MessageLog.direction == direction)
     if date_start:
-        stmt = stmt.where(MessageLog.created_at >= _parse_filter_datetime(date_start, "date_start"))
+        stmt = stmt.where(
+            MessageLog.created_at >= _parse_filter_datetime(date_start, "date_start")
+        )
     if date_end:
-        stmt = stmt.where(MessageLog.created_at <= _parse_filter_datetime(date_end, "date_end"))
-    
+        stmt = stmt.where(
+            MessageLog.created_at <= _parse_filter_datetime(date_end, "date_end")
+        )
+
     stmt = stmt.order_by(MessageLog.created_at.desc()).limit(limit)
     logs = session.exec(stmt).all()
-    
+
     # Grouper par numéro de dossier
     dossiers_map: dict[str, dict] = {}
-    
+
     for msg in logs:
         if not msg.payload:
             continue
-        
+
         ipp, dossier_num = _extract_ipp_and_dossier(msg.payload)
-        
+
         # Les événements centrés patient (p. ex. A28/A31) n'ont pas toujours de
         # NDA. Ne pas les cacher : ils sont groupés par IPP et signalés comme
         # tels dans l'IHM. Sans IPP non plus, chaque journal reste visible.
@@ -341,7 +365,9 @@ def list_by_dossier(
         group_key = (
             f"dossier:{dossier_num}"
             if has_dossier_number
-            else f"ipp:{ipp}" if ipp else f"message:{msg.id}"
+            else f"ipp:{ipp}"
+            if ipp
+            else f"message:{msg.id}"
         )
 
         if group_key not in dossiers_map:
@@ -361,13 +387,13 @@ def list_by_dossier(
                 "has_pam_errors": False,
                 "has_ack_errors": False,
             }
-        
+
         dossier_info = dossiers_map[group_key]
         dossier_info["message_count"] += 1
-        
+
         # Vérifier si ce message est en erreur
         has_error = False
-        
+
         # Comptabiliser les statuts
         if msg.status in {"error", "ack_error", "rejected"}:
             dossier_info["error_count"] += 1
@@ -382,12 +408,15 @@ def list_by_dossier(
             dossier_info["warning_count"] += 1
         else:
             dossier_info["success_count"] += 1
-        
+
         # Dernière activité
-        if not dossier_info["last_activity"] or msg.created_at > dossier_info["last_activity"]:
+        if (
+            not dossier_info["last_activity"]
+            or msg.created_at > dossier_info["last_activity"]
+        ):
             dossier_info["last_activity"] = msg.created_at
             dossier_info["last_message_id"] = msg.id
-        
+
         # Collecter les endpoints et types de messages
         if msg.endpoint_id:
             dossier_info["endpoint_ids"].add(msg.endpoint_id)
@@ -396,7 +425,7 @@ def list_by_dossier(
             # Marquer le type si ce message a une erreur
             if has_error:
                 dossier_info["message_types_with_errors"].add(msg.message_type)
-    
+
     # Convertir en liste et calculer le statut global
     dossiers_list = []
     for info in dossiers_map.values():
@@ -407,10 +436,12 @@ def list_by_dossier(
             global_status = "warning"
         else:
             global_status = "ok"
-        
+
         info["global_status"] = global_status
         info["endpoint_ids"] = list(info["endpoint_ids"])
-        info["message_types"] = sorted(list(info["message_types"]))  # Trier pour cohérence
+        info["message_types"] = sorted(
+            list(info["message_types"])
+        )  # Trier pour cohérence
         info["message_types_with_errors"] = list(info["message_types_with_errors"])
         dossiers_list.append(info)
 
@@ -418,10 +449,9 @@ def list_by_dossier(
     # any of its messages is in error, even if its most recent message succeeded.
     if dossier_status in {"ok", "warning", "error"}:
         dossiers_list = [
-            info for info in dossiers_list
-            if info["global_status"] == dossier_status
+            info for info in dossiers_list if info["global_status"] == dossier_status
         ]
-    
+
     # Trier par dernière activité (plus récent en premier), puis paginer les
     # dossiers et non les messages : un dossier reste donc toujours entier.
     dossiers_list.sort(key=lambda x: x["last_activity"] or datetime.min, reverse=True)
@@ -435,12 +465,16 @@ def list_by_dossier(
             dossier_seqs.add(int(info["dossier_number"]))
         except (TypeError, ValueError):
             continue
-    dossier_ids_by_seq = {
-        dossier.dossier_seq: dossier.id
-        for dossier in session.exec(
-            select(Dossier).where(Dossier.dossier_seq.in_(dossier_seqs))
-        ).all()
-    } if dossier_seqs else {}
+    dossier_ids_by_seq = (
+        {
+            dossier.dossier_seq: dossier.id
+            for dossier in session.exec(
+                select(Dossier).where(Dossier.dossier_seq.in_(dossier_seqs))
+            ).all()
+        }
+        if dossier_seqs
+        else {}
+    )
     for info in dossiers_list:
         try:
             info["dossier_id"] = dossier_ids_by_seq.get(int(info["dossier_number"]))
@@ -455,7 +489,7 @@ def list_by_dossier(
     page_size = min(max(int(page_size), 25), 100)
     total_pages = max(1, (total_count + page_size - 1) // page_size)
     page = min(max(1, page), total_pages)
-    page_dossiers = dossiers_list[(page - 1) * page_size:page * page_size]
+    page_dossiers = dossiers_list[(page - 1) * page_size : page * page_size]
 
     raw_query_params = getattr(request, "query_params", None)
     query_params = dict(raw_query_params) if raw_query_params is not None else {}
@@ -464,19 +498,19 @@ def list_by_dossier(
     query_params["page_size"] = str(page_size)
     request_url = getattr(request, "url", None)
     request_path = getattr(request_url, "path", None)
-    base_url = (request_path if isinstance(request_path, str) else "/messages/by-dossier") + (
-        "?" + urlencode(query_params) if query_params else "?"
-    )
-    
+    base_url = (
+        request_path if isinstance(request_path, str) else "/messages/by-dossier"
+    ) + ("?" + urlencode(query_params) if query_params else "?")
+
     # Récupérer les endpoints pour affichage
     endpoints = session.exec(select(SystemEndpoint).order_by(SystemEndpoint.name)).all()
     ep_name = {e.id: e.name for e in endpoints}
-    
+
     direction_opts = get_vocabulary_options("message-direction") or [
         {"value": "in", "label": "Entrante"},
-        {"value": "out", "label": "Sortante"}
+        {"value": "out", "label": "Sortante"},
     ]
-    
+
     return get_templates_with_filters(request).TemplateResponse(
         request,
         "messages_by_dossier.html",
@@ -524,11 +558,11 @@ def dossier_detail(
         .order_by(MessageLog.created_at.asc())
     )
     all_logs = session.exec(stmt).all()
-    
+
     # Filtrer par numéro de dossier et extraire le statut ACK
     dossier_messages = []
     ack_statuses = {}  # Dictionnaire pour stocker les statuts ACK extraits
-    
+
     for msg in all_logs:
         if not msg.payload:
             continue
@@ -537,20 +571,20 @@ def dossier_detail(
             # Extraire le statut ACK depuis MSA-1
             ack_status = None
             if msg.ack_payload:
-                for line in msg.ack_payload.split('\r'):
-                    if line.startswith('MSA|'):
-                        parts = line.split('|')
+                for line in msg.ack_payload.split("\r"):
+                    if line.startswith("MSA|"):
+                        parts = line.split("|")
                         if len(parts) > 1:
                             ack_status = parts[1]
                         break
             # Stocker dans le dictionnaire
             ack_statuses[msg.id] = ack_status
             dossier_messages.append(msg)
-    
+
     # Récupérer les endpoints pour affichage
     endpoints = session.exec(select(SystemEndpoint)).all()
     ep_map = {e.id: e for e in endpoints}
-    
+
     return get_templates_with_filters(request).TemplateResponse(
         request,
         "messages_dossier_detail.html",
@@ -558,7 +592,8 @@ def dossier_detail(
             "dossier_number": dossier_number,
             "messages": dossier_messages,
             "ack_statuses": ack_statuses,
-            "ep_map": ep_map},
+            "ep_map": ep_map,
+        },
     )
 
 
@@ -575,7 +610,7 @@ def dossier_export(
         .order_by(MessageLog.created_at.asc())
     )
     all_logs = session.exec(stmt).all()
-    
+
     # Filtrer par numéro de dossier
     dossier_messages = []
     for msg in all_logs:
@@ -584,13 +619,15 @@ def dossier_export(
         _, dos_num = _extract_ipp_and_dossier(msg.payload)
         if dos_num == dossier_number:
             dossier_messages.append(msg)
-    
+
     if not dossier_messages:
-        return HTMLResponse(content="Aucun message trouvé pour ce dossier", status_code=404)
-    
+        return HTMLResponse(
+            content="Aucun message trouvé pour ce dossier", status_code=404
+        )
+
     # Créer le ZIP en mémoire
     zip_buffer = io.BytesIO()
-    
+
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
         # Ajouter un fichier récapitulatif
         summary_lines = [
@@ -601,19 +638,19 @@ def dossier_export(
             "Liste des messages:",
             "",
         ]
-        
+
         for idx, msg in enumerate(dossier_messages, 1):
             # Nom de fichier pour ce message
             msg_prefix = f"message_{idx:03d}_{msg.id}"
-            
+
             # Ajouter le message HL7
             if msg.payload:
                 zip_file.writestr(f"{msg_prefix}_message.hl7", msg.payload)
-            
+
             # Ajouter l'ACK si présent
             if msg.ack_payload:
                 zip_file.writestr(f"{msg_prefix}_ack.hl7", msg.ack_payload)
-            
+
             # Ajouter le rapport de validation JSON
             validation_report = {
                 "message_id": msg.id,
@@ -621,13 +658,15 @@ def dossier_export(
                 "message_type": msg.message_type,
                 "status": msg.status,
                 "pam_validation_status": msg.pam_validation_status,
-                "pam_validation_issues": json.loads(msg.pam_validation_issues) if msg.pam_validation_issues else [],
+                "pam_validation_issues": json.loads(msg.pam_validation_issues)
+                if msg.pam_validation_issues
+                else [],
             }
             zip_file.writestr(
                 f"{msg_prefix}_validation.json",
-                json.dumps(validation_report, indent=2, ensure_ascii=False)
+                json.dumps(validation_report, indent=2, ensure_ascii=False),
             )
-            
+
             # Ajouter au récapitulatif
             summary_lines.append(
                 f"{idx}. Message #{msg.id} - {msg.message_type or 'N/A'} - "
@@ -640,17 +679,17 @@ def dossier_export(
                 # Extraire le texte de l'ACK si disponible
                 ack_text = "N/A"
                 if msg.ack_payload:
-                    for line in msg.ack_payload.split('\r'):
-                        if line.startswith('MSA|'):
-                            parts = line.split('|')
+                    for line in msg.ack_payload.split("\r"):
+                        if line.startswith("MSA|"):
+                            parts = line.split("|")
                             if len(parts) > 3:
                                 ack_text = parts[3]
                             break
                 summary_lines.append(f"   ❌ Erreur: {ack_text}")
-        
+
         # Écrire le récapitulatif
         zip_file.writestr("README.txt", "\n".join(summary_lines))
-    
+
     # Préparer la réponse
     zip_buffer.seek(0)
     return StreamingResponse(
@@ -668,13 +707,18 @@ def send_message_form(request: Request, session: Session = Depends(get_session))
     endpoints = session.exec(select(SystemEndpoint).order_by(SystemEndpoint.name)).all()
     transport_opts = get_vocabulary_options("transport-type") or [
         {"value": "MLLP", "label": "MLLP (HL7 v2)"},
-        {"value": "FHIR", "label": "FHIR (JSON)"}
+        {"value": "FHIR", "label": "FHIR (JSON)"},
     ]
-    return get_templates_with_filters(request).TemplateResponse(request, "send_message.html", {
-        "request": request, 
-        "endpoints": endpoints,
-        "transport_options": transport_opts
-    })
+    return get_templates_with_filters(request).TemplateResponse(
+        request,
+        "send_message.html",
+        {
+            "request": request,
+            "endpoints": endpoints,
+            "transport_options": transport_opts,
+        },
+    )
+
 
 @router.post("/send")
 async def send_message(request: Request, session: Session = Depends(get_session)):
@@ -686,9 +730,11 @@ async def send_message(request: Request, session: Session = Depends(get_session)
     # normalize common line endings so transport_inbound sees \r-separated segments
     if isinstance(payload, str):
         # convert CRLF and LF to HL7 segment separator CR
-        payload = payload.replace('\r\n', '\r').replace('\n', '\r')
+        payload = payload.replace("\r\n", "\r").replace("\n", "\r")
         payload = payload.strip()
-    logger.info(f"/messages/send kind={kind} endpoint_id={endpoint_id} payload_len={len(payload) if payload else 0}")
+    logger.info(
+        f"/messages/send kind={kind} endpoint_id={endpoint_id} payload_len={len(payload) if payload else 0}"
+    )
 
     # HL7 via on_message_inbound
     if kind == "MLLP":
@@ -698,15 +744,23 @@ async def send_message(request: Request, session: Session = Depends(get_session)
             except (TypeError, ValueError):
                 endpoint_pk = None
             ep = s.get(SystemEndpoint, endpoint_pk) if endpoint_pk else None
-            endpoints = s.exec(select(SystemEndpoint).order_by(SystemEndpoint.name)).all()
+            endpoints = s.exec(
+                select(SystemEndpoint).order_by(SystemEndpoint.name)
+            ).all()
             if ep and ep.kind != "MLLP":
                 return get_templates_with_filters(request).TemplateResponse(
                     request,
                     "send_message.html",
-                    {"request": request, "error": "Endpoint invalide", "endpoints": endpoints},
+                    {
+                        "request": request,
+                        "error": "Endpoint invalide",
+                        "endpoints": endpoints,
+                    },
                 )
             # allow processing even if no endpoint selected (simulate inbound)
-            logger.info(f"Calling on_message_inbound_async with payload length={len(payload)}, endpoint={ep}")
+            logger.info(
+                f"Calling on_message_inbound_async with payload length={len(payload)}, endpoint={ep}"
+            )
             try:
                 ack = await on_message_inbound_async(payload, s, ep)
                 logger.info(f"ACK received: {ack[:100] if ack else 'None'}")
@@ -729,7 +783,11 @@ async def send_message(request: Request, session: Session = Depends(get_session)
             return get_templates_with_filters(request).TemplateResponse(
                 request,
                 "send_message.html",
-                {"request": request, "error": f"JSON FHIR invalide : {exc.msg}", "endpoints": []},
+                {
+                    "request": request,
+                    "error": f"JSON FHIR invalide : {exc.msg}",
+                    "endpoints": [],
+                },
             )
         with nullcontext(session) as s:
             try:
@@ -737,27 +795,50 @@ async def send_message(request: Request, session: Session = Depends(get_session)
             except (TypeError, ValueError):
                 endpoint_pk = None
             ep = s.get(SystemEndpoint, endpoint_pk) if endpoint_pk else None
-            endpoints = s.exec(select(SystemEndpoint).order_by(SystemEndpoint.name)).all()
+            endpoints = s.exec(
+                select(SystemEndpoint).order_by(SystemEndpoint.name)
+            ).all()
             if ep and ep.kind != "FHIR":
                 return get_templates_with_filters(request).TemplateResponse(
                     request,
                     "send_message.html",
-                    {"request": request, "error": "Endpoint FHIR invalide", "endpoints": endpoints},
+                    {
+                        "request": request,
+                        "error": "Endpoint FHIR invalide",
+                        "endpoints": endpoints,
+                    },
                 )
-            ej_id = (ep.entite_juridique_id if ep else None) or getattr(getattr(request.state, "ej_context", None), "id", None)
+            ej_id = (ep.entite_juridique_id if ep else None) or getattr(
+                getattr(request.state, "ej_context", None), "id", None
+            )
             ej = s.get(EntiteJuridique, ej_id) if ej_id else None
             if ej is None:
                 return get_templates_with_filters(request).TemplateResponse(
                     request,
                     "send_message.html",
-                    {"request": request, "error": "Sélectionnez un endpoint FHIR rattaché à une EJ", "endpoints": endpoints},
+                    {
+                        "request": request,
+                        "error": "Sélectionnez un endpoint FHIR rattaché à une EJ",
+                        "endpoints": endpoints,
+                    },
                 )
-            bundle = obj if obj.get("resourceType") == "Bundle" else {
-                "resourceType": "Bundle", "type": "collection", "entry": [{"resource": obj}],
-            }
+            bundle = (
+                obj
+                if obj.get("resourceType") == "Bundle"
+                else {
+                    "resourceType": "Bundle",
+                    "type": "collection",
+                    "entry": [{"resource": obj}],
+                }
+            )
             log = MessageLog(
-                direction="in", kind="FHIR", endpoint_id=(ep.id if ep else None),
-                payload=payload, ack_payload="", status="received", created_at=datetime.utcnow(),
+                direction="in",
+                kind="FHIR",
+                endpoint_id=(ep.id if ep else None),
+                payload=payload,
+                ack_payload="",
+                status="received",
+                created_at=datetime.utcnow(),
             )
             s.add(log)
             try:
@@ -765,11 +846,13 @@ async def send_message(request: Request, session: Session = Depends(get_session)
                 errors = result.get("errors", [])
                 outcome = {
                     "resourceType": "OperationOutcome",
-                    "issue": [{
-                        "severity": "warning" if errors else "information",
-                        "code": "processing" if errors else "informational",
-                        "diagnostics": f"Import FHIR : {result.get('imported', 0)} ressource(s), {len(errors)} erreur(s)",
-                    }],
+                    "issue": [
+                        {
+                            "severity": "warning" if errors else "information",
+                            "code": "processing" if errors else "informational",
+                            "diagnostics": f"Import FHIR : {result.get('imported', 0)} ressource(s), {len(errors)} erreur(s)",
+                        }
+                    ],
                     "result": result,
                 }
                 log.status = "partial" if errors else "ack_ok"
@@ -790,38 +873,41 @@ async def send_message(request: Request, session: Session = Depends(get_session)
             {"request": request, "kind": kind, "ack": ack, "endpoints": endpoints},
         )
 
-    return get_templates_with_filters(request).TemplateResponse(request, "send_message.html", {"request": request, "error": "Kind non supporté", "endpoints": []})
+    return get_templates_with_filters(request).TemplateResponse(
+        request,
+        "send_message.html",
+        {"request": request, "error": "Kind non supporté", "endpoints": []},
+    )
 
 
 @router.post("/scan")
-async def scan_file_endpoints_manual(request: Request, session: Session = Depends(get_session)):
+async def scan_file_endpoints_manual(
+    request: Request, session: Session = Depends(get_session)
+):
     """Manually trigger scanning of all file-based endpoints"""
     from app.services.file_poller import scan_file_endpoints
-    
+
     try:
         stats = await scan_file_endpoints(session)
         return {
             "success": True,
             "stats": stats,
-            "message": f"Scanned {stats['endpoints_scanned']} endpoints, processed {stats['files_processed']} files"
+            "message": f"Scanned {stats['endpoints_scanned']} endpoints, processed {stats['files_processed']} files",
         }
     except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 @router.get("/scheduler/status")
 def get_scheduler_status():
     """Get the status of the file polling scheduler"""
     from app.services.scheduler import get_scheduler
-    
+
     scheduler = get_scheduler()
     return {
         "running": scheduler.running,
         "poll_interval_seconds": scheduler.poll_interval_seconds,
-        "next_poll": "in progress" if scheduler.running else "stopped"
+        "next_poll": "in progress" if scheduler.running else "stopped",
     }
 
 
@@ -849,49 +935,64 @@ def validate_dossier(
     session: Session = Depends(get_session),
 ):
     """Valide les messages HL7 reçus/émis pour un dossier donné.
-    
+
     Le numéro de dossier peut être:
     - Un ID interne (Dossier.id)
     - Un numéro de dossier externe (contenu dans PV1-19 des messages)
     """
     logger.info(f"Validation dossier: {dossier_number}, endpoint: {endpoint_id}")
-    
+
     # 1. Rechercher d'abord par ID interne si c'est un nombre
     dossier_from_db = None
     if dossier_number.isdigit():
         dossier_from_db = session.get(Dossier, int(dossier_number))
         if dossier_from_db:
             # On a trouvé un dossier, récupérer son dossier_seq comme identifiant externe
-            external_visit_number = str(dossier_from_db.dossier_seq) if dossier_from_db.dossier_seq else None
-            logger.info(f"Dossier trouvé par ID: {dossier_from_db.id}, seq: {external_visit_number}")
+            external_visit_number = (
+                str(dossier_from_db.dossier_seq)
+                if dossier_from_db.dossier_seq
+                else None
+            )
+            logger.info(
+                f"Dossier trouvé par ID: {dossier_from_db.id}, seq: {external_visit_number}"
+            )
         else:
             external_visit_number = dossier_number
     else:
         external_visit_number = dossier_number
-    
+
     # 2. Récupérer tous les messages MLLP
-    stmt = select(MessageLog).where(MessageLog.kind == "MLLP").order_by(MessageLog.created_at)
+    stmt = (
+        select(MessageLog)
+        .where(MessageLog.kind == "MLLP")
+        .order_by(MessageLog.created_at)
+    )
     if endpoint_id:
         stmt = stmt.where(MessageLog.endpoint_id == endpoint_id)
-    
+
     all_messages = session.exec(stmt).all()
     logger.info(f"Total messages MLLP: {len(all_messages)}")
-    
+
     # 3. Filtrer les messages correspondant au dossier
     matching_messages = []
     for msg in all_messages:
         if msg.payload:
             ipp, dossier_extracted = _extract_ipp_and_dossier(msg.payload)
             # Matcher par numéro externe (PV1-19) OU par ID interne si on l'a trouvé
-            if dossier_extracted == external_visit_number or dossier_extracted == dossier_number:
+            if (
+                dossier_extracted == external_visit_number
+                or dossier_extracted == dossier_number
+            ):
                 matching_messages.append(msg)
                 logger.info(f"Message {msg.id} matched: dossier={dossier_extracted}")
-    
+
     logger.info(f"Messages correspondants: {len(matching_messages)}")
-    
+
     # 4. Si aucun message trouvé, retourner une erreur
     if not matching_messages:
-        endpoints = session.exec(select(SystemEndpoint).order_by(SystemEndpoint.name)).all()
+        endpoints = session.exec(
+            select(SystemEndpoint).order_by(SystemEndpoint.name)
+        ).all()
         return get_templates_with_filters(request).TemplateResponse(
             request,
             "validate_dossier.html",
@@ -903,13 +1004,13 @@ def validate_dossier(
                 "error": f"Aucun message trouvé pour le dossier '{dossier_number}'",
             },
         )
-    
+
     # 5. Construire le scénario (concaténer les payloads)
     scenario_text = "\n".join(msg.payload for msg in matching_messages if msg.payload)
-    
+
     # 6. Valider le scénario
     scenario_result = validate_scenario(scenario_text)
-    
+
     # 7. Afficher les résultats
     endpoints = session.exec(select(SystemEndpoint).order_by(SystemEndpoint.name)).all()
     return get_templates_with_filters(request).TemplateResponse(
@@ -926,12 +1027,19 @@ def validate_dossier(
 
 
 @router.get("/{message_id}", response_class=HTMLResponse)
-def message_detail(message_id: int, request: Request, session: Session = Depends(get_session)):
+def message_detail(
+    message_id: int, request: Request, session: Session = Depends(get_session)
+):
     m = session.get(MessageLog, message_id)
     if not m:
-        return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"request": request, "title": "Message introuvable"}, status_code=404)
+        return get_templates_with_filters(request).TemplateResponse(
+            request,
+            "not_found.html",
+            {"request": request, "title": "Message introuvable"},
+            status_code=404,
+        )
     ep = session.get(SystemEndpoint, m.endpoint_id) if m.endpoint_id else None
-    
+
     # Parser le JSON des issues de validation si présent
     validation_issues = None
     if m.pam_validation_issues:
@@ -939,7 +1047,7 @@ def message_detail(message_id: int, request: Request, session: Session = Depends
             validation_issues = json.loads(m.pam_validation_issues)
         except (json.JSONDecodeError, TypeError):
             validation_issues = None
-    
+
     return get_templates_with_filters(request).TemplateResponse(
         request,
         "message_detail.html",
@@ -954,13 +1062,10 @@ def message_detail(message_id: int, request: Request, session: Session = Depends
 
 
 @router.post("/{message_id}/replay")
-async def replay_message(
-    message_id: int,
-    session: Session = Depends(get_session)
-):
+def replay_message(message_id: int, session: Session = Depends(get_session)):
     """
     Rejoue un message en erreur.
-    
+
     Prend un message avec status='error' et le retraite en appelant le handler approprié.
     Le status est réinitialisé à 'received' pour une nouvelle tentative.
     """
@@ -968,38 +1073,43 @@ async def replay_message(
         msg_log = session.get(MessageLog, message_id)
         if not msg_log:
             return {"status": "error", "message": "Message not found"}
-        
+
         if msg_log.status not in ("error", "ack_error"):
-            return {"status": "error", "message": f"Cannot replay message with status '{msg_log.status}' - only 'error' or 'ack_error' can be replayed"}
-        
+            return {
+                "status": "error",
+                "message": f"Cannot replay message with status '{msg_log.status}' - only 'error' or 'ack_error' can be replayed",
+            }
+
         if msg_log.direction != "in":
             return {"status": "error", "message": "Can only replay inbound messages"}
-        
+
         # Récupérer l'endpoint
         endpoint = session.get(SystemEndpoint, msg_log.endpoint_id)
         if not endpoint:
             return {"status": "error", "message": "Associated endpoint not found"}
-        
+
         # Réinitialiser le message
         msg_log.status = "received"
         msg_log.ack_payload = None
         msg_log.created_at = datetime.utcnow()
         session.add(msg_log)
         session.commit()
-        
+
         # Rejouer le message en passant par le handler de transport inbound
         try:
-            ack = await on_message_inbound_async(
-                msg_log.payload,
-                session,
-                endpoint,
-                existing_log=msg_log
+            ack = asyncio.run(
+                on_message_inbound_async(
+                    msg_log.payload,
+                    session,
+                    endpoint,
+                    existing_log=msg_log,
+                )
             )
             return {
                 "status": "success",
                 "message": "Message replayed successfully",
                 "ack": ack,
-                "new_status": msg_log.status
+                "new_status": msg_log.status,
             }
         except Exception as e:
             logger.error(f"Error replaying message {message_id}: {e}", exc_info=True)
@@ -1007,11 +1117,8 @@ async def replay_message(
             msg_log.ack_payload = f"Replay error: {str(e)}"
             session.add(msg_log)
             session.commit()
-            return {
-                "status": "error",
-                "message": f"Replay failed: {str(e)}"
-            }
-        
+            return {"status": "error", "message": f"Replay failed: {str(e)}"}
+
     except Exception as e:
         logger.error(f"Error in replay_message: {e}", exc_info=True)
         return {"status": "error", "message": str(e)}

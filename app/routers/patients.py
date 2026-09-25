@@ -1,11 +1,16 @@
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Body, Depends, Form, Request
+from collections.abc import Mapping
+from urllib.parse import urlencode
+
+from fastapi import APIRouter, Body, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.db import get_session
+from app.dependencies.request_data import read_form_data
 from app.models import Dossier, Patient
 from app.models_identifiers import Identifier
 from app.services import patients_service
@@ -47,7 +52,14 @@ def api_create_patient(
         return JSONResponse(status_code=500, content={"detail": str(e)})
 
 @router.get("", response_class=HTMLResponse)
-def list_patients(request: Request, session=Depends(get_session)):
+def list_patients(
+    request: Request,
+    name: str | None = Query(None),
+    gender: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=25, le=100),
+    session=Depends(get_session),
+):
     """Displays the list of patients, filtered by the current GHT/EJ context."""
     ght_context = getattr(request.state, "ght_context", None)
     ej_context = getattr(request.state, "ej_context", None)
@@ -65,8 +77,25 @@ def list_patients(request: Request, session=Depends(get_session)):
             )
         elif ght_context and getattr(ght_context, "id", None):
             query = query.where(Patient.ght_context_id == ght_context.id)
-        
-    patients = session.exec(query).all()
+
+    if name:
+        pattern = f"%{name.strip()}%"
+        query = query.where(
+            Patient.family.ilike(pattern) | Patient.given.ilike(pattern)
+        )
+    if gender:
+        query = query.where(Patient.gender == gender)
+
+    total_count = session.exec(
+        select(func.count()).select_from(query.subquery())
+    ).one()
+    total_pages = max(1, (total_count + page_size - 1) // page_size)
+    page = min(page, total_pages)
+    patients = session.exec(
+        query.order_by(Patient.family, Patient.given, Patient.id)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    ).all()
     # Si le contexte filtre à zéro patients, exposer un flag pour la bannière explicite
     context_filtered_empty = False
     if not patients and not show_all and (ej_context and getattr(ej_context, "id", None)):
@@ -85,9 +114,10 @@ def list_patients(request: Request, session=Depends(get_session)):
     ]
     breadcrumbs = [{"label": "Patients", "url": "/patients"}]
     filters = [
-        {"label": "Nom", "name": "name", "type": "text", "placeholder": "Rechercher par nom"},
+        {"label": "Nom", "name": "name", "type": "text", "value": name or "", "placeholder": "Rechercher par nom"},
         {
             "label": "Genre", "name": "gender", "type": "select", "placeholder": "Tous",
+            "value": gender or "",
             "options": [{"value": "male", "label": "Homme"}, {"value": "female", "label": "Femme"}]
         }
     ]
@@ -97,11 +127,27 @@ def list_patients(request: Request, session=Depends(get_session)):
         {"type": "link", "label": "Fusionner deux patients (A40)", "url": "/patients/merge"},
     ]
 
+    raw_query_params = getattr(request, "query_params", None)
+    query_params = dict(raw_query_params) if isinstance(raw_query_params, Mapping) else {}
+    query_params.pop("page", None)
+    query_params.pop("page_size", None)
+    query_params["page_size"] = str(page_size)
+    encoded_params = urlencode(query_params)
+    pagination = {
+        "page": page,
+        "page_size": page_size,
+        "page_size_param": "page_size",
+        "max_page_size": 100,
+        "total_count": total_count,
+        "total_pages": total_pages,
+        "base_url": f"/patients?{encoded_params}" if encoded_params else "/patients?",
+    }
+
     ctx = {
         "request": request, "title": "Patients", "breadcrumbs": breadcrumbs,
         "headers": ["ID", "ExtID", "Nom", "Date naiss.", "Genre"],
         "rows": rows, "new_url": "/patients/new", "filters": filters,
-        "actions": actions, "show_actions": True
+        "actions": actions, "show_actions": True, "pagination": pagination,
     }
     if context_filtered_empty:
         ctx["context_filtered_empty"] = True
@@ -164,10 +210,11 @@ def edit_patient(patient_id: int, request: Request, session=Depends(get_session)
 
 
 @router.post("/{patient_id:int}/edit")
-async def update_patient_from_form(
+def update_patient_from_form(
     patient_id: int,
     request: Request,
     session: Session = Depends(get_session),
+    form=Depends(read_form_data),
 ):
     """Handles the submission of the patient edit form."""
     patient = session.get(Patient, patient_id)
@@ -176,7 +223,6 @@ async def update_patient_from_form(
 
     is_ajax = request.headers.get('accept') == 'application/json'
     try:
-        form = await request.form()
         # Keep this list tied to the schema: every field exposed by the form is
         # persisted instead of silently dropping the PAM-relevant demographics.
         patient_update_data = PatientUpdateSchema(

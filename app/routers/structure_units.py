@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session, select
 
 from app.db import get_session
+from app.dependencies.request_data import read_form_data
 from app.services.structure_schedule import apply_scheduled_status, form_datetime_to_hl7, hl7_to_form_datetime
 from app.services.vocabulary_lookup import get_vocabulary_options
 from app.schemas.structure import (
@@ -45,14 +46,11 @@ def list_unites_hebergement(
         query = query.where(UniteHebergement.status == status)
     
     uhs = session.exec(query).all()
-    changed = apply_scheduled_status(uhs)
+    apply_scheduled_status(uhs)
 
     # Récupération des UFs pour le filtre
     ufs = session.exec(select(UniteFonctionnelle)).all()
-    if apply_scheduled_status(ufs):
-        changed = True
-    if changed:
-        session.commit()
+    apply_scheduled_status(ufs)
     
     return get_templates_with_filters(request).TemplateResponse(
         request,
@@ -88,8 +86,7 @@ def list_unites_hebergement_api(
         skip=skip,
         limit=limit,
     )
-    if apply_scheduled_status(uhs):
-        session.commit()
+    apply_scheduled_status(uhs)
     return uhs
 
 @router.get("/uh/new", response_class=HTMLResponse)
@@ -121,21 +118,22 @@ def view_unite_hebergement(
     uh = session.get(UniteHebergement, uh_id)
     if not uh:
         raise HTTPException(status_code=404, detail="Unité d'hébergement non trouvée")
-    changed = apply_scheduled_status([uh])
+    apply_scheduled_status([uh])
 
-    # Charger les chambres liées à cette UH avec leurs lits
+    # Charger les chambres et leurs lits en deux requêtes bornées : éviter une
+    # requête supplémentaire par chambre lorsque l'unité est importante.
     chambres = session.exec(select(Chambre).where(Chambre.unite_hebergement_id == uh_id)).all()
-    # Eager-load lits for each chambre so template can access them
+    chambre_ids = [chambre.id for chambre in chambres]
+    lits_by_chambre = {}
+    if chambre_ids:
+        for lit in session.exec(select(Lit).where(Lit.chambre_id.in_(chambre_ids))).all():
+            lits_by_chambre.setdefault(lit.chambre_id, []).append(lit)
+    # Attach lits so the legacy template can access the relation without I/O.
     for chambre in chambres:
-        lits = session.exec(select(Lit).where(Lit.chambre_id == chambre.id)).all()
-        if apply_scheduled_status(lits):
-            changed = True
-        # attach lits to the chambre instance for template rendering
+        lits = lits_by_chambre.get(chambre.id, [])
+        apply_scheduled_status(lits)
         setattr(chambre, "lits", lits)
-    if apply_scheduled_status(chambres):
-        changed = True
-    if changed:
-        session.commit()
+    apply_scheduled_status(chambres)
     
     return get_templates_with_filters(request).TemplateResponse(
         request,
@@ -156,13 +154,10 @@ def edit_unite_hebergement_form(
     uh = session.get(UniteHebergement, uh_id)
     if not uh:
         raise HTTPException(status_code=404, detail="Unité d'hébergement non trouvée")
-    changed = apply_scheduled_status([uh])
+    apply_scheduled_status([uh])
 
     ufs = session.exec(select(UniteFonctionnelle)).all()
-    if apply_scheduled_status(ufs):
-        changed = True
-    if changed:
-        session.commit()
+    apply_scheduled_status(ufs)
     return get_templates_with_filters(request).TemplateResponse(
         request,
         "structure/uh_form.html",
@@ -178,11 +173,11 @@ def edit_unite_hebergement_form(
     )
 
 @router.post("/uh", response_model=UniteHebergementRead)
-async def create_unite_hebergement(
+def create_unite_hebergement(
     request: Request,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    form=Depends(read_form_data),
 ):
-    form = await request.form()
     mode_value = form.get("mode") or LocationMode.INSTANCE
     status_value = form.get("status") or LocationStatus.ACTIVE
     uh = UniteHebergement(
@@ -202,16 +197,16 @@ async def create_unite_hebergement(
     return RedirectResponse(url="/structure/uh", status_code=303)
 
 @router.post("/uh/{uh_id}", response_model=UniteHebergementRead)
-async def update_unite_hebergement(
+def update_unite_hebergement(
     request: Request,
     uh_id: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    form=Depends(read_form_data),
 ):
     uh = session.get(UniteHebergement, uh_id)
     if not uh:
         raise HTTPException(status_code=404, detail="Unité d'hébergement non trouvée")
     
-    form = await request.form()
     uh.name = form["name"]
     uh.identifier = form.get("identifier", uh.identifier)
     uh.unite_fonctionnelle_id = int(form["unite_fonctionnelle_id"])

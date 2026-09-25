@@ -1,7 +1,7 @@
 """
 Import/Export de structure hospitalière via Excel
 """
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Request, Form
+from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.responses import StreamingResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
@@ -16,6 +16,7 @@ except ModuleNotFoundError:
     Workbook = None
 
 from app.dependencies.db_deps import get_session
+from app.dependencies.request_data import read_uploaded_file
 from app.models_structure import (
     EntiteGeographique, Pole, Service, UniteFonctionnelle,
     UniteHebergement, Chambre, Lit
@@ -340,8 +341,8 @@ async def export_template():
 # === Import Endpoints ===
 
 @router.post("/import/excel")
-async def import_excel_preview(
-    file: UploadFile = File(...),
+def import_excel_preview(
+    uploaded_file: tuple[str, bytes] = Depends(read_uploaded_file),
     mode: Literal["create", "update", "replace"] = Form(...),
     session: Session = Depends(get_session)
 ):
@@ -361,12 +362,12 @@ async def import_excel_preview(
     start_time = time.time()
     
     # Validation format fichier
-    if not file.filename.endswith(('.xlsx', '.xls')):
+    filename, contents = uploaded_file
+    if not filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(400, "Format invalide. Seuls .xlsx et .xls sont acceptés")
     
     # Lecture du fichier
     try:
-        contents = await file.read()
         wb = load_workbook(io.BytesIO(contents), data_only=True)
     except Exception as e:
         raise HTTPException(400, f"Erreur lecture Excel: {str(e)}")
@@ -531,8 +532,8 @@ async def import_excel_preview(
 
 
 @router.post("/import/confirm")
-async def import_excel_confirm(
-    file: UploadFile = File(...),
+def import_excel_confirm(
+    uploaded_file: tuple[str, bytes] = Depends(read_uploaded_file),
     mode: Literal["create", "update", "replace"] = Form(...),
     session: Session = Depends(get_session)
 ):
@@ -552,7 +553,7 @@ async def import_excel_confirm(
     
     # Relecture du fichier
     try:
-        contents = await file.read()
+        _filename, contents = uploaded_file
         wb = load_workbook(io.BytesIO(contents), data_only=True)
     except Exception as e:
         raise HTTPException(400, f"Erreur lecture Excel: {str(e)}")

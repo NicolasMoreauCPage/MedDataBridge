@@ -7,12 +7,12 @@ from enum import Enum
 from sqlmodel import SQLModel, Field, Relationship
 
 from app.models_identifiers import Identifier
-import app.models_contacts
+import app.models.contacts
 import app.models_structure  # noqa: F401 - registre des relations ORM
 from app.models_structure import Chambre, Lit
 
 if TYPE_CHECKING:
-    from app.models_contacts import PatientContact, VenueContact
+    from app.models.contacts import PatientContact, VenueContact
     from app.models.practitioners import MedecinResponsable
 
 

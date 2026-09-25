@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import select
 from app.db import get_session
-from app.models_contacts import PatientContact, VenueContact
+from app.models.contacts import PatientContact, VenueContact
 from app.models import Patient, Venue
 from app.dependencies.ght import require_ght_context
 

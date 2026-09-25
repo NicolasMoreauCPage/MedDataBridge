@@ -40,7 +40,7 @@ from app.infrastructure.hl7.parsing import (
 from app.services.nature_mapping import derive_nature
 # Import validation functions from infrastructure layer (Phase 1 extraction)
 from app.infrastructure.hl7.validation import validate_transition
-from app.models_contacts import PatientContact, VenueContact  # NK1 parsing models
+from app.models.contacts import PatientContact, VenueContact  # NK1 parsing models
 from app.utils.booleans import as_bool
 
 logger = logging.getLogger("transport_inbound")

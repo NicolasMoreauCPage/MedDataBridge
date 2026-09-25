@@ -17,7 +17,7 @@ from typing import Iterable, Optional
 from sqlmodel import Session, select
 
 from app.models.endpoints import SystemEndpoint
-from app.models_scenarios import InteropScenario, InteropScenarioStep, ScenarioTemplate
+from app.models.scenarios import InteropScenario, InteropScenarioStep, ScenarioTemplate
 from app.models_structure import EntiteJuridique
 from app.services.scenario_template_materializer import (
     MaterializationOptions,

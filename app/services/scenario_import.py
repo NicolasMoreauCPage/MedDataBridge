@@ -13,7 +13,7 @@ from typing import Any, Optional
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
 
-from app.models_scenarios import InteropScenario, InteropScenarioStep
+from app.models.scenarios import InteropScenario, InteropScenarioStep
 from app.models_structure import GHTContext
 from app.utils.booleans import as_bool
 

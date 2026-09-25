@@ -13,7 +13,7 @@ from sqlmodel import Session, select
 
 from app.models.qualification import ScenarioTargetState, ScenarioTheme, ScenarioThemeAssignment
 from app.models.scenario_runs import ScenarioDelivery, ScenarioPlay, ScenarioPlayTarget
-from app.models_scenarios import InteropScenario
+from app.models.scenarios import InteropScenario
 
 
 LEGACY_VARIABLES = re.compile(r"\$[A-Za-z][A-Za-z0-9_]*\$")

@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 from sqlmodel import Session, select, func
 
 from app.models.scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog
-from app.models_scenarios import InteropScenario
+from app.models.scenarios import InteropScenario
 
 
 def get_scenario_stats(

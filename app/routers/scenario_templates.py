@@ -10,7 +10,7 @@ from sqlalchemy import or_
 from sqlmodel import Session, select
 
 from app.db import get_session
-from app.models_scenarios import ScenarioTemplate, ScenarioTemplateStep
+from app.models.scenarios import ScenarioTemplate, ScenarioTemplateStep
 from app.models_structure import EntiteJuridique
 from app.services.scenario_template_materializer import (
     materialize_template,

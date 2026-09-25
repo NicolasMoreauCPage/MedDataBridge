@@ -26,7 +26,7 @@ from app.models.qualification import (
     QualificationCampaignRun,
 )
 from app.models.scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog
-from app.models_scenarios import InteropScenario, InteropScenarioStep
+from app.models.scenarios import InteropScenario, InteropScenarioStep
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.models.hprim_models import HprimCCAMAct, HprimNGAPAct, HprimExchangeAct
 from app.services.scenario_runner import send_scenario

@@ -10,7 +10,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Optional, Sequence
 
-from app.models_scenarios import InteropScenarioStep
+from app.models.scenarios import InteropScenarioStep
 from app.services.mllp import parse_msh_fields
 from app.state_transitions import IDENTITY_ONLY_TRIGGERS, is_valid_transition
 

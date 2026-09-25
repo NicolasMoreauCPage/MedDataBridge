@@ -17,7 +17,7 @@ from datetime import datetime
 from typing import List, Optional, Tuple
 from sqlmodel import Session, select
 
-from app.models_scenarios import ScenarioTemplate, ScenarioTemplateStep
+from app.models.scenarios import ScenarioTemplate, ScenarioTemplateStep
 from app.models import Dossier, Venue, Mouvement
 
 
@@ -192,7 +192,7 @@ def capture_dossier_as_scenario(
     - tests/test_scenario_roundtrip.py
     - tests/test_scenario_integration.py
     """
-    from app.models_scenarios import InteropScenario, InteropScenarioStep
+    from app.models.scenarios import InteropScenario, InteropScenarioStep
     from app.models.hprim_models import HprimMessage
     
     # Générer métadonnées

@@ -17,7 +17,7 @@ from typing import Optional
 from datetime import datetime, timedelta
 from sqlmodel import Session, select
 
-from app.models_scenarios import ScenarioTemplate, InteropScenario, InteropScenarioStep
+from app.models.scenarios import ScenarioTemplate, InteropScenario, InteropScenarioStep
 from app.models_structure import EntiteJuridique
 from app.services.identifier_generator import generate_identifier
 from app.models.identifiers import IdentifierType

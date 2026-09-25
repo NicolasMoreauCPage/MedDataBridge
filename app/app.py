@@ -43,7 +43,7 @@ from app.db import (
     make_session_factory,
     migrate_database,
 )
-from app import models_scenarios  # noqa: F401 - ORM registry
+from app.models import scenarios as models_scenarios  # noqa: F401 - ORM registry
 from app.admin import register_admin_views  # SQLAdmin views
 from app.db_session_factory import get_session as compatibility_session_dependency
 from app.db_session_factory import session_factory as default_session_factory

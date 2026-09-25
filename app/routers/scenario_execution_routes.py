@@ -14,7 +14,7 @@ from sqlmodel import Session, select
 from app.db import get_session
 from app.models.endpoints import SystemEndpoint
 from app.models import Dossier
-from app.models_scenarios import (
+from app.models.scenarios import (
     InteropScenario,
     InteropScenarioStep,
     ScenarioVersion,

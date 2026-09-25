@@ -7,7 +7,7 @@ from typing import Iterable, List, Optional
 from sqlalchemy import delete
 from sqlmodel import Session, select
 
-from app.models_scenarios import InteropScenario, InteropScenarioStep
+from app.models.scenarios import InteropScenario, InteropScenarioStep
 
 
 def parse_hl7_messages(content: str) -> List[str]:

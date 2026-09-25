@@ -31,7 +31,7 @@ from app.models.hprim_models import HprimMessage, HprimCCAMAct, HprimNGAPAct, Hp
 from app.models.outbox import OutboundMessage  # noqa: F401 - ORM registry
 from app.models.identifiers import Identifier  # noqa: F401 - ORM registry
 from app.models.practitioners import MedecinResponsable  # noqa: F401 - ORM registry / FK resolution
-from app import models_scenarios  # noqa: F401 - ORM registry
+from app.models import scenarios as models_scenarios  # noqa: F401 - ORM registry
 from app.models import scenario_runs as models_scenario_runs  # noqa: F401 - ORM registry
 from app.models import scenario_target_profiles as models_scenario_target_profiles  # noqa: F401 - ORM registry
 from app.models import qualification as models_qualification  # noqa: F401 - ORM registry

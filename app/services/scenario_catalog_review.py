@@ -11,7 +11,7 @@ from pathlib import Path
 from sqlmodel import Session, select
 
 from app.models.scenario_review import ScenarioCatalogReview
-from app.models_scenarios import InteropScenario, InteropScenarioStep
+from app.models.scenarios import InteropScenario, InteropScenarioStep
 
 
 DEFAULT_REPORT_PATH = Path(

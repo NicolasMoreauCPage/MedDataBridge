@@ -17,7 +17,7 @@ from typing import Any
 
 from sqlmodel import Session, select
 
-from app.models_scenarios import InteropScenario, InteropScenarioStep
+from app.models.scenarios import InteropScenario, InteropScenarioStep
 from app.services.scenario_qualification_service import assign_theme, ensure_theme
 from app.services.scenario_import import split_embedded_messages
 from app.services.scenario_naming import humanize_scenario_name

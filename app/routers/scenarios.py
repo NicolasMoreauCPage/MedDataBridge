@@ -17,7 +17,7 @@ from app.db import get_session
 from app.routers.scenario_execution_routes import router as execution_router
 from app.dependencies.request_data import read_optional_json_upload
 from app.models.endpoints import SystemEndpoint
-from app.models_scenarios import (
+from app.models.scenarios import (
     InteropScenario,
     InteropScenarioStep,
     ScenarioTemplate,

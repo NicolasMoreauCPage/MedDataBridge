@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.models.hprim_models import HprimCCAMAct, HprimNGAPAct, HprimExchangeAct
 from app.models.scenario_runs import ScenarioDelivery, ScenarioPlay, ScenarioPlayStep
-from app.models_scenarios import InteropScenario
+from app.models.scenarios import InteropScenario
 
 _MODELS = {
     "Patient": Patient, "Dossier": Dossier, "Venue": Venue, "Mouvement": Mouvement,

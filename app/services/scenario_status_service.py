@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import List, Optional
 from sqlmodel import Session, select, func, and_
 
-from app.models_scenarios import InteropScenario
+from app.models.scenarios import InteropScenario
 from app.models.scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog
 from app.models.endpoints import SystemEndpoint
 from app.models_structure import EntiteJuridique

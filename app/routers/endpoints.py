@@ -19,7 +19,7 @@ from app.models.context import (
     MouvementContextMapping,
 )
 from app.models_structure import GHTContext, EntiteJuridique
-from app.models_scenarios import InteropScenario, InteropScenarioStep
+from app.models.scenarios import InteropScenario, InteropScenarioStep
 from app.runtime.runners import registry
 from app.utils.booleans import as_bool
 from sqlmodel.sql.expression import select as sqlmodel_select

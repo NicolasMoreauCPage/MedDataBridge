@@ -8,7 +8,7 @@ from datetime import datetime
 
 from sqlmodel import Session, select
 
-from app.models_scenarios import InteropScenario, ScenarioVersion
+from app.models.scenarios import InteropScenario, ScenarioVersion
 
 
 def scenario_snapshot(scenario: InteropScenario) -> dict:

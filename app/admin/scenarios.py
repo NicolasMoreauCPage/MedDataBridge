@@ -1,6 +1,6 @@
 """Vues admin pour les scénarios d'interopérabilité"""
 from sqladmin import ModelView
-from app.models_scenarios import InteropScenario, InteropScenarioStep, ScenarioTemplate, ScenarioTemplateStep
+from app.models.scenarios import InteropScenario, InteropScenarioStep, ScenarioTemplate, ScenarioTemplateStep
 
 
 class InteropScenarioAdmin(ModelView, model=InteropScenario):

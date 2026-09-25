@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import List
 from sqlmodel import Session, select
 
-from app.models_scenarios import ScenarioTemplate, ScenarioTemplateStep
+from app.models.scenarios import ScenarioTemplate, ScenarioTemplateStep
 
 logger = logging.getLogger(__name__)
 

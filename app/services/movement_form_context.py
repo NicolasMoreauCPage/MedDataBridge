@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
 from app.db import peek_next_sequence
-from app.form_config import MouvementStatus, MovementType
+from app.forms.config import MouvementStatus, MovementType
 from app.models import Dossier, Mouvement, Venue
 from app.models_structure import (
     Chambre,

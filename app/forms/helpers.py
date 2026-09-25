@@ -1,6 +1,4 @@
-"""
-Helpers pour les formulaires avec vocabulaires
-"""
+"""Helpers pour les formulaires avec vocabulaires."""
 from typing import Optional, Dict, Any
 from sqlmodel import Session, select
 from app.models_vocabulary import VocabularySystem, VocabularyValue
@@ -130,3 +128,10 @@ def get_vocabulary_mapping(
     ).first()
     
     return mapping.code if mapping else None
+
+
+__all__ = [
+    "get_vocabulary_field",
+    "get_vocabulary_display",
+    "get_vocabulary_mapping",
+]

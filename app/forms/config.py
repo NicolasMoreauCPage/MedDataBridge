@@ -1,3 +1,5 @@
+"""Configuration des champs et choix de formulaires."""
+
 from enum import Enum
 from typing import Dict, List, Any
 from app.models import DossierType
@@ -44,33 +46,36 @@ class AuthKind(str, Enum):
         return [{"value": e.value, "label": e.value.capitalize()} for e in cls]
 
 class MovementType(str, Enum):
-    """Types de mouvements ADT (Admission/Discharge/Transfer) selon IHE PAM"""
-    ADT_A01 = "ADT^A01"  # Admission
-    ADT_A02 = "ADT^A02"  # Transfert
-    ADT_A03 = "ADT^A03"  # Sortie définitive
-    ADT_A04 = "ADT^A04"  # Admission aux urgences / consultation externe
-    ADT_A05 = "ADT^A05"  # Pré-admission
-    ADT_A06 = "ADT^A06"  # Changement de statut ambulatoire vers hospitalisé
-    ADT_A07 = "ADT^A07"  # Changement de statut hospitalisé vers ambulatoire
-    ADT_A11 = "ADT^A11"  # Annulation d'admission
-    ADT_A12 = "ADT^A12"  # Annulation de transfert
-    ADT_A13 = "ADT^A13"  # Annulation de sortie
-    ADT_A21 = "ADT^A21"  # Permission de sortie (patient absent temporairement)
-    
+    """
+    Types de mouvements métier propres au modèle (français, indépendants des standards HL7/FHIR).
+    Les correspondances avec les standards doivent être gérées dans des tables de mapping séparées.
+    """
+    ADMISSION = "admission"  # Admission en hospitalisation
+    TRANSFERT = "transfert"  # Transfert du patient
+    SORTIE = "sortie"        # Sortie définitive
+    CONSULTATION = "consultation"  # Admission urgences / consultation externe
+    PRE_ADMISSION = "pre_admission"  # Pré-admission
+    MUTATION = "mutation"    # Mutation vers consultation / urgence
+    RETOUR = "retour"        # Retour de consultation
+    ANNUL_ADMISSION = "annulation_admission"  # Annulation d'admission
+    ANNUL_TRANSFERT = "annulation_transfert"  # Annulation de transfert
+    ANNUL_SORTIE = "annulation_sortie"        # Annulation de sortie
+    PERMISSION = "permission"  # Permission de sortie (patient absent temporairement)
+
     @classmethod
     def choices(cls) -> List[Dict[str, str]]:
         labels = {
-            "ADT^A01": "Admission en hospitalisation",
-            "ADT^A02": "Transfert du patient",
-            "ADT^A03": "Sortie définitive",
-            "ADT^A04": "Admission urgences / consultation externe",
-            "ADT^A05": "Pré-admission",
-            "ADT^A06": "Mutation vers consultation / urgence",
-            "ADT^A07": "Retour de consultation",
-            "ADT^A11": "Annulation d'admission",
-            "ADT^A12": "Annulation de transfert",
-            "ADT^A13": "Annulation de sortie",
-            "ADT^A21": "Permission de sortie",
+            "admission": "Admission en hospitalisation",
+            "transfert": "Transfert du patient",
+            "sortie": "Sortie définitive",
+            "consultation": "Consultation / urgences",
+            "pre_admission": "Pré-admission",
+            "mutation": "Mutation",
+            "retour": "Retour de consultation",
+            "annulation_admission": "Annulation d'admission",
+            "annulation_transfert": "Annulation de transfert",
+            "annulation_sortie": "Annulation de sortie",
+            "permission": "Permission de sortie",
         }
         return [{"value": e.value, "label": labels.get(e.value, e.value)} for e in cls]
 
@@ -105,16 +110,18 @@ MODEL_FIELDS = {
         }
     },
     "Dossier": {
-        "required": ["patient_id", "uf_medicale", "admit_time"],
+        "required": ["patient_id", "admit_time"],
         "select": {
             "admission_type": AdmissionType,
+            "admission_source": "encounter-admission-fr",  # Vocabulaire pour source d'admission
             "dossier_type": DossierType,
         },
         "help": {
             "patient_id": "ID du patient existant dans la base",
-            "uf_medicale": "Unité fonctionnelle responsable du dossier",
+            "uf_responsabilite": "Unité fonctionnelle responsable du dossier (optionnel)",
             "admit_time": "Date et heure d'admission",
             "admission_type": "Type d'admission du patient",
+            "admission_source": "Source d'admission (Domicile, Transfert, etc.)",
             "dossier_type": "Type de dossier (hospitalisé/externe/urgence)",
         }
     },
@@ -167,11 +174,35 @@ def get_field_config(model_name: str, field_name: str) -> Dict[str, Any]:
     config = {"required": field_name in MODEL_FIELDS[model_name]["required"]}
     
     if field_name in MODEL_FIELDS[model_name]["select"]:
-        enum_class = MODEL_FIELDS[model_name]["select"][field_name]
+        select_value = MODEL_FIELDS[model_name]["select"][field_name]
         config["type"] = "select"
-        config["options"] = enum_class.choices()
+
+        # Si c'est une chaîne, c'est un nom de vocabulaire
+        if isinstance(select_value, str):
+            from app.services.vocabulary_lookup import get_vocabulary_options
+            config["options"] = get_vocabulary_options(select_value)
+        # Sinon c'est une classe Enum
+        else:
+            enum_class = select_value
+            # Use choices() if available, else Solution de repli to list of values
+            if hasattr(enum_class, "choices"):
+                config["options"] = enum_class.choices()
+            else:
+                config["options"] = [{"value": e.value, "label": str(e.value).capitalize()} for e in enum_class]
     
     if field_name in MODEL_FIELDS[model_name]["help"]:
         config["help"] = MODEL_FIELDS[model_name]["help"][field_name]
     
     return config
+
+
+__all__ = [
+    "AdmissionType",
+    "EndpointKind",
+    "EndpointRole",
+    "AuthKind",
+    "MovementType",
+    "MouvementStatus",
+    "MODEL_FIELDS",
+    "get_field_config",
+]

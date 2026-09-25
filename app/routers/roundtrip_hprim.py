@@ -13,7 +13,7 @@ from sqlmodel import select
 from app.api.hprim_ccam import ReceptionRequest, recevoir_actes_ccam
 from app.db import get_session
 from app.models.hprim_models import HprimMessage as StoredHprimMessage, HprimExchangeAct
-from app.hprim_models import (
+from app.protocols.hprim.models import (
     HprimActeCCAM, HprimActeLPP, HprimActeNGAP, HprimActeUCD, HprimAction,
     HprimCodeLPP, HprimEnteteMessage, HprimLPP, HprimMessage,
     HprimMessageType, HprimPatient, HprimProfessionnel, HprimUCD,

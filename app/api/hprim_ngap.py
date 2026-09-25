@@ -20,7 +20,7 @@ from app.models.hprim_models import (
     HprimNGAPAct as StoredHprimNGAPAct,
     HprimMessage as StoredHprimMessage,
 )
-from app.hprim_models import HprimPatient, HprimProfessionnel, HprimAction
+from app.protocols.hprim.models import HprimPatient, HprimProfessionnel, HprimAction
 from app.services.hprim import HprimValidationError
 from app.api.hprim_ccam import (
     PatientInfo,
@@ -322,7 +322,7 @@ def emettre_actes_ngap(
         )
 
         # Convertir les données de requête en objets HPRIM
-        from app.hprim_models import (
+        from app.protocols.hprim.models import (
             HprimIdentifiantAdministrationPatient,
             HprimNumeroIdentifiantSante,
             HprimNumeroIdentifiantPatients,

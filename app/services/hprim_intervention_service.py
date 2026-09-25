@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import List, Optional
 from sqlmodel import Session, select
 from app.models import Dossier, Intervention, CCAMAct, NGAPAct, LPPAct, UCDAct
-from app.hprim_models import HprimIntervention, HprimCotation
+from app.protocols.hprim.models import HprimIntervention, HprimCotation
 
 
 class HprimInterventionService:

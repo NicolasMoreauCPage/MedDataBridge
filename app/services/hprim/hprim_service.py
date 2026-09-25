@@ -14,7 +14,7 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from uuid import uuid4
 
-from app.hprim_models import (
+from app.protocols.hprim.models import (
     HprimMessage, HprimEnteteMessage, HprimPatient, HprimProfessionnel,
     HprimActeCCAM, HprimActeNGAP, HprimMessageType, HprimVenue,
     HprimMontant
@@ -316,14 +316,14 @@ class HprimService:
         # Créer les modificateurs
         mods = []
         if modificateurs:
-            from app.hprim_models import HprimModificateur
+            from app.protocols.hprim.models import HprimModificateur
             for mod in modificateurs:
                 mods.append(HprimModificateur(code=mod))
 
         # Créer le montant
         montant_obj = None
         if montant:
-            from app.hprim_models import HprimMontant
+            from app.protocols.hprim.models import HprimMontant
             from decimal import Decimal
             montant_obj = HprimMontant(valeur=Decimal(str(montant)))
 

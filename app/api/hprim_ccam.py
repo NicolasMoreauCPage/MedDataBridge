@@ -22,7 +22,7 @@ from app.models.hprim_models import (
     HprimCCAMAct as StoredHprimCCAMAct,
     HprimMessage as StoredHprimMessage,
 )
-from app.hprim_models import HprimPatient, HprimProfessionnel, HprimAction
+from app.protocols.hprim.models import HprimPatient, HprimProfessionnel, HprimAction
 from app.services.hprim import HprimService, HprimValidationError
 
 logger = logging.getLogger(__name__)
@@ -342,7 +342,7 @@ def emettre_actes_ccam(request: EmissionRequest, db: Session = Depends(get_sessi
         )
 
         # Convertir les données de requête en objets HPRIM
-        from app.hprim_models import (
+        from app.protocols.hprim.models import (
             HprimIdentifiantAdministrationPatient,
             HprimNumeroIdentifiantSante,
             HprimNumeroIdentifiantPatients,

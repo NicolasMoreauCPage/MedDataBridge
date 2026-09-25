@@ -13,7 +13,7 @@ from typing import Literal
 
 from sqlmodel import Session
 
-from app.hprim_models import (
+from app.protocols.hprim.models import (
     HprimActeCCAM,
     HprimActeLPP,
     HprimActeNGAP,

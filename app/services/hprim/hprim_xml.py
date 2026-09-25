@@ -11,7 +11,7 @@ from decimal import Decimal
 from typing import Any, List, Optional
 import logging
 
-from app.hprim_models import (
+from app.protocols.hprim.models import (
     HprimMessage, HprimEnteteMessage, HprimPatient, HprimProfessionnel,
     HprimActeCCAM, HprimActeNGAP, HprimVenue, HprimModificateur,
     HprimMontant, HprimPriseCharge, HprimMessageType, HprimAction,
@@ -709,7 +709,7 @@ class HprimXmlService:
         entete_elem = root.find(".//{http://www.hprim.org/hprimXML}enteteMessage")
         if entete_elem is None:
             # En-tête manquant - créer une structure par défaut pour les tests
-            from app.hprim_models import HprimEnteteMessage
+            from app.protocols.hprim.models import HprimEnteteMessage
             entete = HprimEnteteMessage(
                 emetteur_id="TEST_EMETTEUR",
                 emetteur_nom="Test Emetteur",

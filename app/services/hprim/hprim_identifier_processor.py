@@ -13,7 +13,7 @@ from sqlmodel import Session
 
 from app.services.identifier_namespace_classifier import classify_hprim_identifiers
 from app.models.identifiers import IdentifierType
-from app.hprim_models import HprimEnteteMessage
+from app.protocols.hprim.models import HprimEnteteMessage
 
 
 class HprimIdentifierProcessor:

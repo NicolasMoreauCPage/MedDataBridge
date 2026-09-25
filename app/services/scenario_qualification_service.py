@@ -12,7 +12,7 @@ from typing import Optional
 from sqlmodel import Session, select
 
 from app.models.qualification import ScenarioTargetState, ScenarioTheme, ScenarioThemeAssignment
-from app.models_scenario_runs import ScenarioDelivery, ScenarioPlay, ScenarioPlayTarget
+from app.models.scenario_runs import ScenarioDelivery, ScenarioPlay, ScenarioPlayTarget
 from app.models_scenarios import InteropScenario
 
 

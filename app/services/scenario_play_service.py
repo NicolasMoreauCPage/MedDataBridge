@@ -20,7 +20,7 @@ from sqlmodel import Session, select
 from app.models_endpoints import SystemEndpoint
 from app.models.outbox import OutboundMessage
 from app.models.practitioners import MedecinResponsable
-from app.models_scenario_runs import ScenarioDelivery, ScenarioPlay, ScenarioPlayStep, ScenarioPlayTarget
+from app.models.scenario_runs import ScenarioDelivery, ScenarioPlay, ScenarioPlayStep, ScenarioPlayTarget
 from app.models_scenario_review import ScenarioCatalogReview
 from app.models_scenarios import InteropScenario, InteropScenarioStep
 from app.models_structure import IdentifierNamespace

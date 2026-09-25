@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 from app.models.qualification import QualificationCampaign, QualificationCampaignItem, QualificationCampaignRun
 from app.models_endpoints import SystemEndpoint
 from app.models_scenarios import InteropScenario
-from app.models_scenario_runs import ScenarioPlay
+from app.models.scenario_runs import ScenarioPlay
 from app.services.scenario_play_service import ScenarioPlayError, execute_scenario_play, prepare_scenario_play
 
 

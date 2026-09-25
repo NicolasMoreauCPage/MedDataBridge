@@ -18,7 +18,7 @@ from app.models.qualification import (
     QualificationCampaignItem,
     QualificationCampaignRun,
 )
-from app.models_scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog
+from app.models.scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog
 from app.models_scenarios import InteropScenario
 from app.services.interface_metrics import interface_metrics_service
 from app.services.qualification_engine import run_campaign, run_qualification

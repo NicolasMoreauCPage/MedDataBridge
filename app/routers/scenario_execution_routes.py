@@ -29,7 +29,7 @@ from app.services.scenario_dashboard import (
     get_step_error_summary,
     get_scenario_comparison,
 )
-from app.models_scenario_runs import (
+from app.models.scenario_runs import (
     ScenarioDelivery,
 )
 from app.models.outbox import OutboundMessage

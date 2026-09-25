@@ -9,7 +9,7 @@ from typing import List, Optional
 from sqlmodel import Session, select, func, and_
 
 from app.models_scenarios import InteropScenario
-from app.models_scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog
+from app.models.scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog
 from app.models_endpoints import SystemEndpoint
 from app.models_structure import EntiteJuridique
 

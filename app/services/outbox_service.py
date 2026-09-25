@@ -208,7 +208,7 @@ async def process_outbox_message(session: Session, outbox_id: int) -> OutboundMe
                 source_log.status, source_log.ack_payload = "sent", ack
                 session.add(source_log)
         if row.scenario_delivery_id:
-            from app.models_scenario_runs import ScenarioDelivery
+            from app.models.scenario_runs import ScenarioDelivery
             delivery = session.get(ScenarioDelivery, row.scenario_delivery_id)
             if delivery:
                 delivery.status, delivery.message_log_id = "sent", log.id
@@ -235,7 +235,7 @@ async def process_outbox_message(session: Session, outbox_id: int) -> OutboundMe
                 source_log.ack_payload = row.response_payload
                 session.add(source_log)
         if row.scenario_delivery_id:
-            from app.models_scenario_runs import ScenarioDelivery
+            from app.models.scenario_runs import ScenarioDelivery
             delivery = session.get(ScenarioDelivery, row.scenario_delivery_id)
             if delivery:
                 delivery.status, delivery.error_message = ("error" if row.status == "failed" else "retry"), row.last_error
@@ -392,7 +392,7 @@ def _scenario_delivery_gate(
     """
     if not row.scenario_delivery_id:
         return "ready", None
-    from app.models_scenario_runs import ScenarioDelivery, ScenarioPlay, ScenarioPlayStep
+    from app.models.scenario_runs import ScenarioDelivery, ScenarioPlay, ScenarioPlayStep
 
     delivery = session.get(ScenarioDelivery, row.scenario_delivery_id)
     if not delivery:

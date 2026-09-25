@@ -34,7 +34,7 @@ from app.services.scenario_dashboard import (
     get_scenario_stats,
     get_ack_distribution,
 )
-from app.models_scenario_runs import (
+from app.models.scenario_runs import (
     ScenarioExecutionRun,
     ScenarioExecutionStepLog,
 )

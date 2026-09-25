@@ -275,7 +275,7 @@ def play_template(
         play = asyncio.run(execute_scenario_play(session, play.id))
     except ScenarioPlayError as e:
         raise HTTPException(status_code=500, detail=str(e))
-    from app.models_scenario_runs import ScenarioDelivery, ScenarioPlayStep
+    from app.models.scenario_runs import ScenarioDelivery, ScenarioPlayStep
 
     deliveries = session.exec(
         select(ScenarioDelivery).where(ScenarioDelivery.play_id == play.id)

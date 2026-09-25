@@ -30,7 +30,7 @@ def _resolve_jwt_secret() -> str:
     En production, une clé explicite est obligatoire.
     En dev/tests, on autorise une valeur de secours pour ne pas bloquer les exécutions locales.
     """
-    secret = os.getenv("JWT_SECRET_KEY") or settings.secret_key
+    secret = settings.jwt_secret_key or os.getenv("JWT_SECRET_KEY") or settings.secret_key
     insecure_defaults = {
         "dev-secret-key-change-in-production",
         "change-me-in-production",

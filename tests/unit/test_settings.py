@@ -31,7 +31,13 @@ def test_settings_parse_typed_environment_values():
 
 def test_security_is_disabled_by_default_and_can_be_enabled():
     assert Settings.from_environment({}).security_enabled is False
-    assert Settings.from_environment({"SECURITY_ENABLED": "true"}).security_enabled is True
+    assert Settings.from_environment(
+        {
+            "SECURITY_ENABLED": "true",
+            "SECRET_KEY": "a" * 32,
+            "JWT_SECRET_KEY": "b" * 32,
+        }
+    ).security_enabled is True
 
 
 def test_create_app_only_mounts_login_routes_when_security_is_enabled():

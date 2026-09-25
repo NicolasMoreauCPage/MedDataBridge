@@ -58,6 +58,16 @@ def _positive_int(environ: Mapping[str, str], name: str, default: int) -> int:
     return value
 
 
+def _secret(environ: Mapping[str, str], name: str, default: str = "") -> str:
+    value = _value(environ, name, default)
+    insecure = {"", "dev-secret-key-change-in-production", "change-me-in-production", "dev-secret-key"}
+    if value in insecure or len(value) < 32:
+        raise ConfigurationError(
+            f"Configuration invalide : {name} doit contenir au moins 32 caractères aléatoires quand SECURITY_ENABLED=true."
+        )
+    return value
+
+
 @dataclass(frozen=True)
 class Settings:
     """Validated runtime settings used by application entry points."""
@@ -72,6 +82,7 @@ class Settings:
     db_max_overflow: int = 10
     db_pool_timeout: int = 30
     secret_key: str = "dev-secret-key-change-in-production"
+    jwt_secret_key: str = ""
     file_poll_interval: int = 60
     max_upload_size_mb: int = 20
     max_concurrent_tasks: int = 3
@@ -86,6 +97,14 @@ class Settings:
         database_url = _value(env, "DATABASE_URL", cls.database_url)
         if not database_url:
             raise ConfigurationError("Configuration invalide : DATABASE_URL ne peut pas être vide.")
+        security_enabled = _bool(env, "SECURITY_ENABLED", cls.security_enabled)
+        secret_key = _value(env, "SECRET_KEY", cls.secret_key)
+        jwt_secret_key = _value(env, "JWT_SECRET_KEY", "")
+        if security_enabled:
+            secret_key = _secret(env, "SECRET_KEY")
+            jwt_secret_key = _secret(env, "JWT_SECRET_KEY")
+            if secret_key == jwt_secret_key:
+                raise ConfigurationError("SECRET_KEY et JWT_SECRET_KEY doivent être distincts quand SECURITY_ENABLED=true.")
         return cls(
             debug=_bool(env, "DEBUG"),
             testing=_bool(env, "TESTING"),
@@ -94,13 +113,14 @@ class Settings:
             db_pool_size=_positive_int(env, "DB_POOL_SIZE", cls.db_pool_size),
             db_max_overflow=_positive_int(env, "DB_MAX_OVERFLOW", cls.db_max_overflow),
             db_pool_timeout=_positive_int(env, "DB_POOL_TIMEOUT", cls.db_pool_timeout),
-            secret_key=_value(env, "SECRET_KEY", cls.secret_key),
+            secret_key=secret_key,
+            jwt_secret_key=jwt_secret_key,
             file_poll_interval=_positive_int(env, "FILE_POLL_INTERVAL", cls.file_poll_interval),
             max_upload_size_mb=_positive_int(env, "MAX_UPLOAD_SIZE_MB", cls.max_upload_size_mb),
             max_concurrent_tasks=_positive_int(env, "MAX_CONCURRENT_TASKS", cls.max_concurrent_tasks),
             task_timeout=_positive_int(env, "TASK_TIMEOUT", cls.task_timeout),
             task_worker_count=_positive_int(env, "TASK_WORKER_COUNT", cls.task_worker_count),
-            security_enabled=_bool(env, "SECURITY_ENABLED", cls.security_enabled),
+            security_enabled=security_enabled,
         )
 
     def validate_config(self) -> list[str]:
@@ -119,6 +139,7 @@ class Settings:
         values = asdict(self)
         if mask_secrets:
             values["secret_key"] = "***" if self.secret_key else ""
+            values["jwt_secret_key"] = "***" if self.jwt_secret_key else ""
         return values
 
 

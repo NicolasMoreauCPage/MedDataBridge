@@ -43,6 +43,8 @@ Le service applicatif écoute par défaut sur le port local `8000`. Lorsqu'il es
 déjà utilisé, le port peut être choisi sans modifier le fichier Compose :
 
 ```bash
+cp .env.example .env
+# Renseigner au minimum SECRET_KEY, JWT_SECRET_KEY et SESSION_SECRET_KEY.
 MEDBRIDGE_PORT=8002 docker compose -f docker/docker-compose.yml up -d --build
 curl --fail http://127.0.0.1:8002/health
 docker compose -f docker/docker-compose.yml down
@@ -50,7 +52,10 @@ docker compose -f docker/docker-compose.yml down
 
 Le démarrage applique les migrations Alembic avant Uvicorn. PostgreSQL et
 Redis restent accessibles au réseau interne Compose ; les données applicatives
-sont conservées dans des volumes nommés.
+sont conservées dans des volumes nommés. `docker compose -f
+docker/docker-compose.yml config` reste exécutable sans `.env`, ce qui permet
+de valider la configuration depuis un checkout propre ; le lancement du
+service, lui, requiert les clés de runtime.
 
 L'inventaire des opérations publiques est généré depuis l'OpenAPI effectif :
 

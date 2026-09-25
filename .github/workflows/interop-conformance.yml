@@ -41,6 +41,9 @@ jobs:
 
       - name: Build, migrate and check the Compose stack
         run: |
+          export SECRET_KEY="$(openssl rand -hex 32)"
+          export JWT_SECRET_KEY="$(openssl rand -hex 32)"
+          export SESSION_SECRET_KEY="$(openssl rand -hex 32)"
           docker compose -f docker/docker-compose.yml up -d --build --wait --wait-timeout 180
           curl --fail --retry 10 --retry-connrefused --retry-delay 2 http://127.0.0.1:8000/health
 

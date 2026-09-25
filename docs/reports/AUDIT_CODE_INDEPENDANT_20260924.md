@@ -425,9 +425,11 @@ Une fois ces fondations posées, le découpage des cinq plus gros workflows mét
 
 ## 10. Suivi de mise en œuvre — 25 septembre 2026
 
-Le demandeur a explicitement exclu le lot 0 de cette mise en œuvre. Les sujets
-authentification, secrets, assainissement HTML et Compose n'ont donc pas été
-modifiés dans ce lot.
+Le demandeur a explicitement exclu les corrections de sécurité de cette mise
+en œuvre. Les sujets authentification, secrets et assainissement HTML ne sont
+donc pas modifiés. La correction technique de reproductibilité Compose
+(`AUD-05`) a été réalisée séparément, sans changer la politique de sécurité de
+l'application.
 
 ### Lots 1 à 3 réalisés
 
@@ -444,6 +446,7 @@ modifiés dans ce lot.
 | AUD-14 | Les wheels versionnées et le rapport PAM généré de 63 Mio ont été retirés du checkout et ignorés ; ils restent récupérables dans l'historique Git jusqu'à une opération de purge dédiée. |
 | AUD-15 | Les dépendances runtime/dev sont séparées. `requirements-runtime.lock` est généré avec hashes ; Docker et le bundle installent/téléchargent ce lock. Métadonnées Python/npm, README et procédure RHEL sont alignés. |
 | AUD-16 | Les dépendances npm sont ramenées aux dépendances directes, tout en conservant les budgets et les contrôles d'assets existants. |
+| AUD-05 | Compose ne dépend plus d'un `env_file` absent d'un checkout propre ; sa configuration est validable sans `.env`. Les chemins des montages Nginx/Prometheus sont résolus depuis `docker/`, les logs deviennent un volume nommé et le smoke test CI injecte des clés éphémères. Le bootstrap Alembic PostgreSQL crée aussi les types `ENUM` avant les tables qui les utilisent. |
 
 ### Réduction progressive de la dette (AUD-06 et AUD-07)
 

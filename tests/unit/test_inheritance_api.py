@@ -7,7 +7,7 @@ les valeurs locales et effectives avec les métadonnées d'héritage.
 
 import unittest
 from datetime import date
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 from fastapi import HTTPException
 
 
@@ -190,14 +190,11 @@ class TestInheritanceAPI(unittest.TestCase):
             deactivation_date=None
         )
 
-    @patch('tests.unit.test_inheritance_api.get_session')
-    def test_get_service_api_effective_values(self, mock_get_session):
+    def test_get_service_api_effective_values(self):
         """Test que la fonction API service retourne les valeurs effectives."""
         # Mock de la session
         mock_session = Mock()
         mock_session.get.return_value = self.service
-        mock_get_session.return_value = mock_session
-
         # Appel direct de la fonction
         result = run_coro_safe(get_service_api_data(1, mock_session))
 
@@ -242,14 +239,11 @@ class TestInheritanceAPI(unittest.TestCase):
         self.assertFalse(inheritance_info["aile_inherited"])
         self.assertFalse(inheritance_info["opening_date_inherited"])
 
-    @patch('tests.unit.test_inheritance_api.get_session')
-    def test_get_pole_api_effective_values(self, mock_get_session):
+    def test_get_pole_api_effective_values(self):
         """Test que la fonction API pôle retourne les valeurs effectives."""
         # Mock de la session
         mock_session = Mock()
         mock_session.get.return_value = self.pole
-        mock_get_session.return_value = mock_session
-
         # Appel direct de la fonction
         result = run_coro_safe(get_pole_api_data(1, mock_session))
 
@@ -280,14 +274,11 @@ class TestInheritanceAPI(unittest.TestCase):
         self.assertFalse(inheritance_info["aile_inherited"])
         self.assertFalse(inheritance_info["opening_date_inherited"])
 
-    @patch('tests.unit.test_inheritance_api.get_session')
-    def test_get_service_api_not_found(self, mock_get_session):
+    def test_get_service_api_not_found(self):
         """Test que la fonction API retourne une erreur pour un service inexistant."""
         # Mock de la session retournant None
         mock_session = Mock()
         mock_session.get.return_value = None
-        mock_get_session.return_value = mock_session
-
         # Appel direct de la fonction - devrait lever une exception
         with self.assertRaises(HTTPException) as context:
             run_coro_safe(get_service_api_data(999, mock_session))
@@ -295,14 +286,11 @@ class TestInheritanceAPI(unittest.TestCase):
         self.assertEqual(context.exception.status_code, 404)
         self.assertIn("Service non trouvé", context.exception.detail)
 
-    @patch('tests.unit.test_inheritance_api.get_session')
-    def test_get_pole_api_not_found(self, mock_get_session):
+    def test_get_pole_api_not_found(self):
         """Test que la fonction API retourne une erreur pour un pôle inexistant."""
         # Mock de la session retournant None
         mock_session = Mock()
         mock_session.get.return_value = None
-        mock_get_session.return_value = mock_session
-
         # Appel direct de la fonction - devrait lever une exception
         with self.assertRaises(HTTPException) as context:
             run_coro_safe(get_pole_api_data(999, mock_session))

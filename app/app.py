@@ -31,6 +31,7 @@ from config.settings import Settings, settings
 
 from app.middleware.flash import FlashMessageMiddleware
 from app.middleware.ght_context import GHTContextMiddleware
+from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.middleware.version import VersionMiddleware
 from app.middleware.error_handler import ErrorHandlingMiddleware, RequestLoggingMiddleware
 from app.infrastructure.metrics import MetricsMiddleware
@@ -295,6 +296,10 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         secret_key=session_secret,
         same_site="lax",
         https_only=app_settings.security_enabled,
+    )
+    app.add_middleware(
+        SecurityHeadersMiddleware,
+        security_enabled=app_settings.security_enabled,
     )
 
     # exposer le manager aux routeurs

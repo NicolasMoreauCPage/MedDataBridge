@@ -74,6 +74,32 @@ def test_create_app_only_mounts_login_routes_when_security_is_enabled():
     assert _session_middleware_options(secured_app)["https_only"] is True
 
 
+def test_security_headers_are_emitted_and_hsts_requires_secure_mode():
+    from app.app import create_app
+
+    local_app = create_app(Settings(testing=True))
+    secured_app = create_app(Settings(
+        testing=True,
+        security_enabled=True,
+        secret_key="a" * 32,
+        jwt_secret_key="b" * 32,
+        bootstrap_admin_username="admin",
+        bootstrap_admin_password="administrateur-test-fort",
+    ))
+
+    with TestClient(local_app) as client:
+        local_headers = client.get("/ready").headers
+    with TestClient(secured_app) as client:
+        secure_headers = client.get("/ready").headers
+
+    for headers in (local_headers, secure_headers):
+        assert headers["x-content-type-options"] == "nosniff"
+        assert headers["x-frame-options"] == "SAMEORIGIN"
+        assert headers["referrer-policy"] == "strict-origin-when-cross-origin"
+    assert "strict-transport-security" not in local_headers
+    assert secure_headers["strict-transport-security"] == "max-age=31536000; includeSubDomains"
+
+
 @pytest.mark.parametrize(
     ("name", "value", "expected"),
     [

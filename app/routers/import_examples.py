@@ -6,11 +6,13 @@ from pathlib import Path
 import tempfile
 import importlib.util
 from functools import lru_cache
+import logging
 from uuid import uuid4
 
 from config.settings import settings
 
 router = APIRouter(prefix="/import", tags=["import"])
+logger = logging.getLogger(__name__)
 
 @lru_cache(maxsize=1)
 def _load_import_impls():
@@ -122,7 +124,11 @@ def import_structure_mfn_endpoint(
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Erreur import structure MFN: {exc}") from exc
+        logger.error("Structure MFN import failed: %s", type(exc).__name__)
+        raise HTTPException(
+            status_code=500,
+            detail="Erreur interne pendant l'import de structure MFN",
+        ) from exc
     finally:
         tmp_path.unlink(missing_ok=True)
 
@@ -173,7 +179,11 @@ def import_pam_messages_endpoint(
         except HTTPException:
             raise
         except Exception as exc:
-            raise HTTPException(status_code=500, detail=f"Erreur import messages PAM: {exc}") from exc
+            logger.error("PAM messages import failed: %s", type(exc).__name__)
+            raise HTTPException(
+                status_code=500,
+                detail="Erreur interne pendant l'import des messages PAM",
+            ) from exc
 
     return {
         "status": "ok",

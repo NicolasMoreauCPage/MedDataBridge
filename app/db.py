@@ -65,6 +65,15 @@ _running_under_pytest = any("pytest" in arg for arg in sys.argv)
 testing_flag = bool(settings.testing or _running_under_pytest)
 
 
+def _enable_sqlite_foreign_keys(dbapi_connection, _connection_record) -> None:
+    """Enable SQLite foreign-key enforcement for every pooled connection."""
+    cursor = dbapi_connection.cursor()
+    try:
+        cursor.execute("PRAGMA foreign_keys=ON")
+    finally:
+        cursor.close()
+
+
 def create_database_engine(runtime_settings=settings, *, in_memory: bool = False):
     """Construit un moteur isolé sans modifier l'état global du module."""
     from sqlalchemy.pool import QueuePool
@@ -92,7 +101,10 @@ def create_database_engine(runtime_settings=settings, *, in_memory: bool = False
                 "pool_timeout": runtime_settings.db_pool_timeout,
             }
         )
-    return create_engine(database_url, **engine_kwargs)
+    database_engine = create_engine(database_url, **engine_kwargs)
+    if is_sqlite:
+        event.listen(database_engine, "connect", _enable_sqlite_foreign_keys)
+    return database_engine
 
 
 if testing_flag:

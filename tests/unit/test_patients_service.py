@@ -27,6 +27,18 @@ class TestPatientsService:
         assert patient.given == "Jean"
         assert str(patient.birth_date) == "1990-01-15"
 
+    def test_create_patient_can_be_rolled_back_by_the_caller(self, session: Session):
+        patient = create_patient(
+            session=session,
+            patient_data=PatientCreateSchema(family="Rollback", given="Patient"),
+            commit=False,
+        )
+
+        patient_id = patient.id
+        session.rollback()
+
+        assert session.get(Patient, patient_id) is None
+
     def test_update_patient_success(self, session: Session):
         """Test mise à jour patient réussie"""
         # Créer un patient

@@ -307,7 +307,12 @@ class TestDataMigration:
                 given="Patient",
                 birth_date="1980-01-01"
             )
-            patient = create_patient(session=session, patient_data=patient_data, ght_context_id=999)  # ID invalide
+            patient = create_patient(
+                session=session,
+                patient_data=patient_data,
+                ght_context_id=999,
+                commit=False,
+            )
 
             # Forcer un rollback en levant une exception
             raise Exception("Migration failed - testing rollback")

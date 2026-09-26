@@ -71,11 +71,16 @@ class PatientUpdateSchema(BaseModel):
 def create_patient(
     session: Session, 
     patient_data: PatientCreateSchema, 
-    ght_context_id: Optional[int] = None
+    ght_context_id: Optional[int] = None,
+    *,
+    commit: bool = True,
 ) -> Patient:
     """
     Crée un nouveau patient en base de données.
     Gère la logique de génération d'identifiant et la transaction.
+
+    ``commit=False`` lets a caller compose this operation in a larger
+    transaction and roll it back atomically.
     """
     identifier_val = patient_data.identifier or str(uuid4())
     data = patient_data.model_dump()
@@ -124,8 +129,11 @@ def create_patient(
         ght_context_id=ght_context_id
     )
     session.add(patient)
-    session.commit()
-    session.refresh(patient)
+    if commit:
+        session.commit()
+        session.refresh(patient)
+    else:
+        session.flush()
     return patient
 
 def update_patient(

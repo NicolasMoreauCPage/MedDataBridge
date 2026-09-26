@@ -28,6 +28,15 @@ def _base_msh(msg_type: str, control_id: str = "CTRL1") -> str:
     return f"MSH|^~\\&|SRC_APP|SRC_FAC|DST_APP|DST_FAC|20260328090000||{msg_type}|{control_id}|P|2.5\r"
 
 
+def _persist_mllp_endpoint(session):
+    from app.models_shared import SystemEndpoint
+
+    endpoint = SystemEndpoint(name="MLLP test", kind="MLLP", role="receiver")
+    session.add(endpoint)
+    session.commit()
+    return endpoint
+
+
 def _seed_patient_graph_with_mouvement(session, identifier: str = "12345", trigger_event: str = "A01"):
     from app.db import get_next_sequence
     from app.models import Dossier, Mouvement, Patient, Venue
@@ -549,12 +558,13 @@ def test_on_message_inbound_async_validator_reject_mode_returns_ae(session, monk
             return {"issues": [{"code": "X", "message": "profil non conforme", "severity": "error"}]}
 
     class Endpoint:
-        id = 2
         entite_juridique = None
         entite_juridique_id = None
         pam_validate_enabled = True
         pam_validate_mode = "reject"
         pam_profile = "IHE_PAM_FR"
+
+    Endpoint.id = _persist_mllp_endpoint(session).id
 
     monkeypatch.setattr("app.services.transport_inbound.validate_pam", lambda *_args, **_kwargs: ValidationResult())
 
@@ -572,12 +582,13 @@ def test_on_message_inbound_async_validator_reject_mode_returns_ae(session, monk
 
 def test_on_message_inbound_async_validator_exception_sets_warn_and_continues(session, monkeypatch, caplog):
     class Endpoint:
-        id = 3
         entite_juridique = None
         entite_juridique_id = None
         pam_validate_enabled = False
         pam_validate_mode = "warn"
         pam_profile = "IHE_PAM_FR"
+
+    Endpoint.id = _persist_mllp_endpoint(session).id
 
     async def _fake_route_message(_session, _trigger, _pid_data, _pv1_data, message=None, ej_id=None):
         return True, None
@@ -600,12 +611,13 @@ def test_on_message_inbound_async_validator_exception_sets_warn_and_continues(se
 
 def test_on_message_inbound_async_update_without_existing_on_admission_falls_back_to_insert(session, monkeypatch):
     class Endpoint:
-        id = 4
         entite_juridique = None
         entite_juridique_id = None
         pam_validate_enabled = False
         pam_validate_mode = "warn"
         pam_profile = "IHE_PAM_FR"
+
+    Endpoint.id = _persist_mllp_endpoint(session).id
 
     async def _fake_route_message(_session, _trigger, _pid_data, _pv1_data, message=None, ej_id=None):
         return True, None

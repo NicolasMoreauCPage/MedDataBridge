@@ -25,3 +25,15 @@ def test_output_validator_accepts_well_formed_generic_xml_with_warning():
     assert report.valid is True
     assert report.status == "warning"
     assert report.warnings
+
+
+def test_output_validator_rejects_xml_doctype():
+    payload = """<!DOCTYPE document [
+        <!ENTITY external SYSTEM "file:///etc/passwd">
+    ]>
+    <document>&external;</document>"""
+
+    report = validate_compiled_payload(payload, "xml")
+
+    assert report.valid is False
+    assert report.errors == ["XML invalide: DOCTYPE XML interdite"]

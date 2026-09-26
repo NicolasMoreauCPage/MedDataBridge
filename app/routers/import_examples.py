@@ -13,6 +13,7 @@ from config.settings import settings
 
 router = APIRouter(prefix="/import", tags=["import"])
 logger = logging.getLogger(__name__)
+UPLOAD_CHUNK_SIZE = 64 * 1024
 
 @lru_cache(maxsize=1)
 def _load_import_impls():
@@ -94,6 +95,19 @@ def _safe_pam_upload_destination(tmpdir: Path, filename: str) -> Path:
         raise RuntimeError("Destination temporaire PAM invalide")
     return destination
 
+
+def _read_upload_limited(source, max_size: int) -> bytes:
+    """Read an upload in bounded chunks and reject it at the first excess byte."""
+    content = bytearray()
+    while True:
+        remaining = max_size + 1 - len(content)
+        if remaining <= 0:
+            raise HTTPException(status_code=413, detail="Fichier trop volumineux")
+        chunk = source.read(min(UPLOAD_CHUNK_SIZE, remaining))
+        if not chunk:
+            return bytes(content)
+        content.extend(chunk)
+
 @router.post("/structure_mfn/")
 def import_structure_mfn_endpoint(
     ght_id: int = Form(...),
@@ -106,11 +120,9 @@ def import_structure_mfn_endpoint(
         raise HTTPException(status_code=400, detail="Nom de fichier MFN manquant")
 
     max_size = settings.max_upload_size_mb * 1024 * 1024
-    file_bytes = file.file.read()
+    file_bytes = _read_upload_limited(file.file, max_size)
     if len(file_bytes) == 0:
         raise HTTPException(status_code=400, detail="Fichier MFN vide")
-    if len(file_bytes) > max_size:
-        raise HTTPException(status_code=413, detail="Fichier MFN trop volumineux")
 
     ej = _resolve_ej_in_ght(session, ght_id, ej_id)
     import_structure_mfn_impl, _ = _load_import_impls()
@@ -164,11 +176,9 @@ def import_pam_messages_endpoint(
                 raise HTTPException(status_code=400, detail="Un fichier PAM n'a pas de nom")
             file_path = _safe_pam_upload_destination(tmpdir_path, file.filename)
 
-            content = file.file.read()
+            content = _read_upload_limited(file.file, max_size)
             if len(content) == 0:
                 raise HTTPException(status_code=400, detail=f"Fichier PAM vide: {file.filename}")
-            if len(content) > max_size:
-                raise HTTPException(status_code=413, detail=f"Fichier PAM trop volumineux: {file.filename}")
 
             with open(file_path, "xb") as f:
                 f.write(content)

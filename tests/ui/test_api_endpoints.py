@@ -1,6 +1,3 @@
-import pytest
-from fastapi.testclient import TestClient
-import json
 
 
 class TestAPIEndpoints:

@@ -1,4 +1,3 @@
-import pytest
 from adapters.hl7_pam_fr import build_message_for_movement
 
 class Dummy:

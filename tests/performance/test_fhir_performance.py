@@ -9,12 +9,9 @@ import time
 from datetime import datetime
 from sqlmodel import Session
 
-from app.models import Patient, Dossier
 from app.services.patients_service import PatientCreateSchema, create_patient
 from app.services.dossiers_service import DossierCreateSchema, create_dossier_with_pre_admit_venue
 from app.services.fhir_export_service import FHIRExportService
-from app.services.fhir_import_service import FHIRImportService
-from app.models_structure import GHTContext, EntiteJuridique
 
 
 @pytest.mark.performance

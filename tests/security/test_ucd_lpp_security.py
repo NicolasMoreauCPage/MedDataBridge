@@ -6,7 +6,6 @@ Tests de validation d'entrée, injection SQL, XSS, etc.
 
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, patch
 
 from app.app import app
 

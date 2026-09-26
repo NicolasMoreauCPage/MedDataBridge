@@ -5,7 +5,6 @@ Tests UI pour les routers UCD et LPP
 
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, AsyncMock
 
 from app.app import app
 

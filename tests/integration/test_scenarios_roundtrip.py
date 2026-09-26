@@ -30,7 +30,7 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent))
 
 from app.db import engine
-from app.models_scenarios import InteropScenario, InteropScenarioStep
+from app.models_scenarios import InteropScenario
 from app.models_shared import SystemEndpoint
 from app.services.scenario_runner import send_scenario
 from sqlmodel import Session, select
@@ -162,17 +162,6 @@ class ScenarioRoundtripTester:
         session.commit()
         print("✅ Endpoints de test supprimés")
 
-    def cleanup_test_endpoints(self, session: Session):
-        """Supprime les endpoints de test créés"""
-        if not self.test_endpoints_created:
-            return
-
-        print("🧹 Suppression des endpoints de test...")
-        for endpoint in self.test_endpoints_created:
-            session.delete(endpoint)
-        session.commit()
-        print("✅ Endpoints de test supprimés")
-
     def validate_scenario_execution(self, scenario: InteropScenario, logs: List) -> Dict:
         """Valide les résultats d'exécution d'un scénario"""
         validation = {
@@ -247,7 +236,7 @@ class ScenarioRoundtripTester:
                         has_pv1 = 'PV1|' in decoded_payload
                         print(f"  🔍 Contient PID: {has_pid}, PV1: {has_pv1}")
                         if not has_pid and not has_pv1:
-                            print(f"  ⚠️ Pas de segments PID ou PV1 trouvés")
+                            print("  ⚠️ Pas de segments PID ou PV1 trouvés")
                         # HL7 utilise \r comme séparateur de segments
                         lines = decoded_payload.split('\r')
                         print(f"  📊 Nombre de segments HL7: {len(lines)}")
@@ -288,7 +277,7 @@ class ScenarioRoundtripTester:
                         if not pid_found and not pv1_found:
                             print(f"  ⚠️ Aucun segment PID ou PV1 trouvé dans les {len(lines)} segments HL7")
                     else:
-                        print(f"  ⚠️ Étape sans payload ou déjà trouvé dans logs")
+                        print("  ⚠️ Étape sans payload ou déjà trouvé dans logs")
 
         # Validation pour les scénarios HPRIM
         if scenario.category == 'HPRIM_COTATION':
@@ -419,7 +408,7 @@ class ScenarioRoundtripTester:
         print("📊 RAPPORT FINAL DES TESTS DE ROUNDTRIP")
         print("=" * 80)
 
-        print(f"📈 Statistiques générales:")
+        print("📈 Statistiques générales:")
         print(f"   • Total scénarios testés: {self.results['total_scenarios']}")
         print(f"   • Réussites complètes: {self.results['successful_runs']}")
         print(f"   • Réussites partielles: {self.results['partial_runs']}")
@@ -432,7 +421,7 @@ class ScenarioRoundtripTester:
         hl7_scenarios = [d for d in self.results['details'] if d.get('protocol') in ['HL7', 'MIXED']]
         hprim_scenarios = [d for d in self.results['details'] if d.get('scenario_key', '').startswith('hprim_')]
 
-        print(f"\n📋 Par catégorie:")
+        print("\n📋 Par catégorie:")
         print(f"   • Scénarios HL7 IHE PAM: {len(hl7_scenarios)}")
         print(f"   • Scénarios HPRIM XML: {len(hprim_scenarios)}")
 
@@ -441,7 +430,7 @@ class ScenarioRoundtripTester:
                             if d.get('identifiers_generated') and
                             ('ipp' in d['identifiers_generated'] or 'nda' in d['identifiers_generated'])]
 
-        print(f"\n🆔 Génération d'identifiants:")
+        print("\n🆔 Génération d'identifiants:")
         print(f"   • Scénarios avec identifiants générés: {len(scenarios_with_ids)}")
 
         if scenarios_with_ids:

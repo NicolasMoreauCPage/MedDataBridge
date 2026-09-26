@@ -82,10 +82,8 @@ def patient_context(page, test_server):
     return None
 # Temporary file to fix conftest.py
 import pytest
-import os
 import uvicorn
 from multiprocessing import Process
-from playwright.sync_api import Page, sync_playwright
 
 
 def run_app(host, port):

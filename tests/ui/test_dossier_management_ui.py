@@ -10,8 +10,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from app.app import app
-from app.models import Patient, Dossier, Venue, Mouvement, DossierType
-from app.models_structure import GHTContext
+from app.models import Dossier, Mouvement, DossierType
 from app.services.mouvements_service import MouvementCreateSchema, create_mouvement
 
 

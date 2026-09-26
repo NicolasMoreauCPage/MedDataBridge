@@ -1,14 +1,13 @@
 """
 Tests API pour les endpoints UCD et LPP
 """
-import pytest
 from datetime import datetime
 from fastapi.testclient import TestClient
 from unittest.mock import Mock, patch
 from app.api.ucd import router as ucd_router
 from app.api.lpp import router as lpp_router
-from app.schemas.ucd import UCDActCreate, UCDActUpdate, UCDActResponse
-from app.schemas.lpp import LPPActCreate, LPPActUpdate, LPPActResponse
+from app.schemas.ucd import UCDActResponse
+from app.schemas.lpp import LPPActResponse
 
 EXECUTE_DATE = datetime(2025, 12, 21, 10, 0)
 

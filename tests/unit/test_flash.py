@@ -5,8 +5,7 @@ Cet utilitaire gère les messages flash pour les notifications utilisateur.
 """
 
 import unittest
-from unittest.mock import Mock, patch
-from datetime import datetime, timezone
+from unittest.mock import Mock
 from app.utils.flash import flash, FlashLevel
 
 

@@ -18,7 +18,7 @@ os.environ['LOG_LEVEL'] = 'DEBUG'
 sys.path.insert(0, '.')
 
 import asyncio
-from app.db import get_session, session_factory
+from app.db import session_factory
 from app.models_shared import SystemEndpoint
 from app.services.transport_inbound import on_message_inbound_async
 from sqlalchemy import text
@@ -34,7 +34,7 @@ async def test():
 
         result = await on_message_inbound_async(message, session, endpoint)
 
-        print(f"\n=== RÉSULTAT ===")
+        print("\n=== RÉSULTAT ===")
         print(f"ACK: {result[:150]}...")
 
         # Forcer un commit

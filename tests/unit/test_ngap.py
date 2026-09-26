@@ -9,7 +9,7 @@ from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.models import NGAPAct, Dossier, Patient, SQLModel
+from app.models import Dossier, Patient, SQLModel
 from app.services.ngap_service import NGAPService
 from app.api.ngap import NGAPActCreate
 

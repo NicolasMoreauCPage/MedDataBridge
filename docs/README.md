@@ -13,12 +13,14 @@ mais ne décrivent pas nécessairement l'état courant.
 | Architecture d'ensemble | [architecture.md](architecture.md) | Vue d'orientation ; le code prévaut | Plateforme | 25 septembre 2026 |
 | IHE PAM France / CPage | [rapport d'audit PAM](reports/AUDIT_CONFORMITE_IHE_PAM_FRANCE_20260911.md) et [roundtrip CPage](reports/ROUNDTRIP_CPAGE_PAM_20260911.md) | Périmètre validé techniquement | Interopérabilité PAM | 24 septembre 2026 |
 | HPRIM XML | [plan et état d'avancement](reports/PLAN_AMELIORATIONS_INTEROPERABILITE_20260911.md) | CCAM, NGAP, UCD et LPP couverts par tests ciblés | Interopérabilité HPRIM | 24 septembre 2026 |
+| Capacités interopérables | [matrice de capacités](INTEROPERABILITY_CAPABILITY_MATRIX.md) | Contrat produit courant et limites explicites | Interopérabilité | 26 septembre 2026 |
 | MFN Structure | [plan d'interopérabilité](reports/PLAN_AMELIORATIONS_INTEROPERABILITE_20260911.md) et [mémo MFN](MFN_INTEGRATION_COMPLETE_FR.md) | Périmètre courant puis détail historique | Interopérabilité Structure | 24 septembre 2026 |
 | FHIR France / FR Core | [vérification FR Core 2.2.0](reports/VERIFICATION_FHIR_FRANCE_FR_CORE_2_2_0_20260912.md) | Référence d'échange de structure | Interopérabilité FHIR | 24 septembre 2026 |
 | API FHIR `Location` | [API_FHIR_STRUCTURE.md](API_FHIR_STRUCTURE.md) | API IHM historique, pas le contrat partenaire FR Core | Interopérabilité FHIR | 24 septembre 2026 |
 | Outbox persistante | [OUTBOX.md](OUTBOX.md) | Référence d'exploitation active | Plateforme | 24 septembre 2026 |
 | Tests et CI | [TESTS_STATUS.md](TESTS_STATUS.md) | Commandes et périmètre de preuve actifs | Qualité | 25 septembre 2026 |
-| État des améliorations | [audit indépendant](reports/AUDIT_CODE_INDEPENDANT_20260924.md) | Suivi de mise en œuvre, hors corrections de sécurité | Équipe produit | 25 septembre 2026 |
+| État des améliorations | [audit indépendant](reports/AUDIT_CODE_INDEPENDANT_20260926.md) | Suivi de mise en œuvre et dette restante | Équipe produit | 26 septembre 2026 |
+| Artefacts de qualification | [politique d'archivage](ARTIFACT_POLICY.md) | Sources versionnées, résultats publiés par la CI | Qualité | 26 septembre 2026 |
 | Performance et capacité | [PERFORMANCE_SLO.md](PERFORMANCE_SLO.md) | SLO et protocole actifs | Plateforme | 24 septembre 2026 |
 | Guide utilisateur | [user_guide.md](user_guide.md) | Parcours IHM et procédures d'exploitation actifs | Produit | 24 septembre 2026 |
 | Scénarios multi-protocoles | [plan back/front](reports/PLAN_SCENARIOS_MULTI_PROTOCOLES_20260912.md) | Plan livré, conservé comme historique | Interopérabilité | 24 septembre 2026 |

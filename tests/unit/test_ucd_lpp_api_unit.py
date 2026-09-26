@@ -5,15 +5,11 @@ Tests unitaires pour les APIs UCD et LPP
 
 import pytest
 from unittest.mock import Mock, AsyncMock
-from fastapi.testclient import TestClient
 from datetime import datetime
 from sqlmodel import select
 
-from app.schemas.ucd import UCDActCreate, UCDActUpdate
-from app.schemas.lpp import LPPActCreate, LPPActUpdate
 
 # Import API modules to ensure routes are registered
-from app import api
 
 
 class TestUCDAPI:

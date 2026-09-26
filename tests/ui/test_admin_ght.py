@@ -1,6 +1,4 @@
 import pytest
-import json
-from playwright.sync_api import expect
 from .ui_helpers import wait_for_ready, safe_navigate, capture_console_errors
 
 

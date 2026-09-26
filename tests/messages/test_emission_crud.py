@@ -74,7 +74,6 @@ def test_emit_identity_and_movements(monkeypatch):
     from app.db import engine
     from sqlmodel import Session as SQLSession
     from app.models_shared import SystemEndpoint, MessageLog
-    from app.models_endpoints import MLLPConfig, FHIRConfig
 
     with SQLSession(engine) as session:
         ml = SystemEndpoint(name="UT MLLP", kind="MLLP", role="sender", is_enabled=True, host="localhost", port=2575)
@@ -194,7 +193,6 @@ def test_emit_structure_crud(monkeypatch):
     session.commit()
 
     # Poll MessageLog for MFN or FHIR
-    from app.models_shared import MessageLog
     def wait_for_any(timeout=5):
         end = time.time() + timeout
         while time.time() < end:

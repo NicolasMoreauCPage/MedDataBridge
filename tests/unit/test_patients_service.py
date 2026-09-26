@@ -3,7 +3,7 @@ Tests unitaires pour les services patients (sans TestClient)
 """
 
 import pytest
-from sqlmodel import Session, select
+from sqlmodel import Session
 from app.models import Patient
 from app.services.patients_service import PatientCreateSchema, PatientUpdateSchema, create_patient, update_patient
 

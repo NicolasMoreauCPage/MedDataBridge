@@ -1,4 +1,3 @@
-import pytest
 from datetime import datetime
 from sqlmodel import select
 

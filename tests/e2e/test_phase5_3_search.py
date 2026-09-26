@@ -12,7 +12,6 @@ Fonctionnalités testées :
 
 import pytest
 import asyncio
-import json
 from playwright.async_api import expect
 
 

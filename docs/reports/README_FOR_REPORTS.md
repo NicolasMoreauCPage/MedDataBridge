@@ -20,7 +20,7 @@ Mis à jour le 25 septembre 2026. Propriétaire : équipe Qualité.
 | Scénarios multi-protocoles | [PLAN_SCENARIOS_MULTI_PROTOCOLES_20260912.md](PLAN_SCENARIOS_MULTI_PROTOCOLES_20260912.md) | Plan livré, historique | Interopérabilité | 24 septembre 2026 |
 | Qualification scénarios PAM/HPRIM | [PLAN_QUALIFICATION_SCENARIOS_PAM_HPRIM_20260912.md](PLAN_QUALIFICATION_SCENARIOS_PAM_HPRIM_20260912.md) | Socle livré ; enrichissement partenaire continu | Qualification partenaires | 24 septembre 2026 |
 | FHIR France / FR Core | [VERIFICATION_FHIR_FRANCE_FR_CORE_2_2_0_20260912.md](VERIFICATION_FHIR_FRANCE_FR_CORE_2_2_0_20260912.md) | Compatible sur le périmètre Structure testé | Interopérabilité FHIR | 24 septembre 2026 |
-| Audit produit et mise en œuvre | [AUDIT_CODE_INDEPENDANT_20260924.md](AUDIT_CODE_INDEPENDANT_20260924.md) | Suivi des corrections ; les sujets de sécurité restent volontairement hors périmètre | Équipe produit | 25 septembre 2026 |
+| Audit produit et mise en œuvre | [AUDIT_CODE_INDEPENDANT_20260926.md](AUDIT_CODE_INDEPENDANT_20260926.md) | Audit indépendant et suivi des corrections | Équipe produit | 26 septembre 2026 |
 
 ## Lecture des rapports historiques
 

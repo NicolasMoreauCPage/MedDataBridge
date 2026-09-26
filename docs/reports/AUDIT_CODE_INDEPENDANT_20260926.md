@@ -307,10 +307,13 @@ Les corrections directement réalisables ont été appliquées après cet audit 
 | AUD-05 | Les dépendances runtime sont maintenant des métadonnées PEP 621 valides ; une wheel `2.0.2` est constructible et déclare notamment FastAPI, SQLModel, Alembic et Psycopg. |
 | AUD-06 | La version npm/package-lock est alignée sur `2.0.2`. |
 | AUD-09 | Les KPI et les exports Analytics comptent lits, séjours et DMS par requêtes SQL agrégées au lieu de charger les dossiers complets. |
+| AUD-07 | Le contrôle frontend mesure désormais chaque template avec ses scripts partagés et bloque tout écran dépassant 128 Ko de JavaScript produit. Le maximum courant est de 117 096 octets. |
+| AUD-08 | La revue du créateur de scénarios est extraite dans son propre routeur, distinct du catalogue et des campagnes. Les budgets de taille empêchent toute nouvelle dérive pendant les extractions suivantes. |
+| AUD-10 | Une matrice de capacités explicite le périmètre partenaire. L'émission HPRIM « état patient » refuse désormais explicitement le traitement au lieu de produire un XML vide non qualifié. |
+| AUD-11 | Les corrections sûres de Ruff ont été appliquées aux tests et les règles de style historiques restantes sont isolées aux tests. Les rapports binaires générés sont ignorés et celui qui était versionné est retiré au profit des artefacts CI. |
 
-Les sujets AUD-07, AUD-08, AUD-10 et AUD-11 ne peuvent pas être « corrigés »
-automatiquement sans choix de produit ou opération destructive : réduction
-mesurée des bundles, découpage métier progressif, périmètre contractuel
-HPRIM/CCAM/A08 et politique d'archivage des artefacts Git. Les budgets
-frontend restent cependant contrôlés en CI et les artefacts ne doivent plus
-être ajoutés sans nécessité.
+Le découpage des très gros modules reste un chantier d'amélioration continue :
+les gros modules sont fonctionnels et couverts, mais l'extraction par domaines
+doit progresser sans changer les contrats de protocoles. Le contrôle de taille
+refuse d'ores et déjà toute nouvelle route de plus de 2 000 lignes ou fonction
+de plus de 500 lignes.

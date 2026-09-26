@@ -54,3 +54,10 @@ dependencies = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+
+[tool.ruff.lint.per-file-ignores]
+# Les tests historiques sont exécutés, mais plusieurs d'entre eux sont des
+# scripts de diagnostic conservés tels quels. Les règles de style ci-dessous
+# y sont isolées : elles restent bloquantes dans le produit (``app/``) et tout
+# nouveau test doit respecter Ruff par défaut.
+"tests/**" = ["E402", "E702", "E712", "E722", "E741", "F401", "F841"]

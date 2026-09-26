@@ -7,13 +7,10 @@ Tests du workflow complet : UI -> API -> Service -> Base de données
 import pytest
 import uuid
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, patch
 from datetime import datetime
 
 from app.app import app
-from app.models import UCDAct, LPPAct, Dossier
-from app.schemas.ucd import UCDActCreate
-from app.schemas.lpp import LPPActCreate
+from app.models import Dossier
 
 
 class TestUCDIntegration:
@@ -87,7 +84,7 @@ class TestUCDIntegration:
 
             # Récupération de l'acte créé
             act_id = data["id"]
-            response = client.get(f"/api/ucd/dossier/1")
+            response = client.get("/api/ucd/dossier/1")
             assert response.status_code in [200, 404, 422]
 
             # Mise à jour de l'acte
@@ -186,7 +183,7 @@ class TestLPPIntegration:
 
             # Récupération de l'acte créé
             act_id = data["id"]
-            response = client.get(f"/api/lpp/dossier/1")
+            response = client.get("/api/lpp/dossier/1")
             assert response.status_code in [200, 404, 422]
 
             # Mise à jour de l'acte

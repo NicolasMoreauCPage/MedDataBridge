@@ -1,6 +1,4 @@
-import pytest
 import json
-from fastapi.testclient import TestClient
 from playwright.sync_api import expect
 from .ui_helpers import wait_for_ready, safe_navigate, capture_console_errors
 
@@ -126,7 +124,7 @@ class TestDynamicRoutes:
         dossier_info_selectors = [
             "h2:has-text('Dossier')",  # Look for the dossier title
             ".bg-white:has-text('Informations')",  # Look for the information section
-            f"text=DossierTest Patient"  # Look for the patient name
+            "text=DossierTest Patient"  # Look for the patient name
         ]
 
         info_found = False

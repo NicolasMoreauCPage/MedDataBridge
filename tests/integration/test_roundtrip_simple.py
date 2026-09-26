@@ -5,7 +5,6 @@ Test roundtrip simplifié pour vérifier l'intégration complète
 
 import asyncio
 import sys
-import socket
 from pathlib import Path
 
 import pytest
@@ -15,8 +14,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from app.db import engine
 from app.models_scenarios import InteropScenario, InteropScenarioStep
-from app.models_shared import SystemEndpoint
-from app.services.scenario_runner import send_scenario
 from sqlmodel import Session, select
 
 

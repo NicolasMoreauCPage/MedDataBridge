@@ -69,7 +69,7 @@ async def test_real_world_pam_sample_coverage(session):
     for path, trigger, err in exceptions[:30]:
         print(f"  {path} (trigger={trigger}): {err}")
 
-    print(f"\n=== AE/AR reasons (first 60) ===")
+    print("\n=== AE/AR reasons (first 60) ===")
     for path, trigger, err in error_reasons[:60]:
         print(f"  {path} (trigger={trigger}): {err}")
 

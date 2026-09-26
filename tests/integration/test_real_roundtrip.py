@@ -13,7 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from app.db import engine
-from app.models_scenarios import InteropScenario, InteropScenarioStep
+from app.models_scenarios import InteropScenario
 from app.models_shared import SystemEndpoint
 from app.services.scenario_runner import send_scenario
 from sqlmodel import Session, select

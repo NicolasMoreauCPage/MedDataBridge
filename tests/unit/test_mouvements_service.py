@@ -2,10 +2,9 @@
 Tests unitaires pour les services mouvements (sans TestClient)
 """
 
-import pytest
 from datetime import datetime
-from sqlmodel import Session, select
-from app.models import Mouvement, Venue, Dossier
+from sqlmodel import Session
+from app.models import Venue, Dossier
 from app.services.mouvements_service import MouvementCreateSchema, create_mouvement
 
 

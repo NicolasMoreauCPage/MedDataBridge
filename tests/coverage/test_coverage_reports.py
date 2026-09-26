@@ -6,9 +6,7 @@ Génération de rapports détaillés et métriques de qualité
 
 import pytest
 import coverage
-import os
 from pathlib import Path
-from typing import Dict, List, Any
 import json
 import xml.etree.ElementTree as ET
 

@@ -5,9 +5,6 @@ Test script pour vérifier l'API HPRIM
 import requests
 import time
 import subprocess
-import signal
-import os
-import sys
 
 def test_hprim_api():
     # Lancer le serveur en arrière-plan

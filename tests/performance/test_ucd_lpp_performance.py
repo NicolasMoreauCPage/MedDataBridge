@@ -7,7 +7,6 @@ Tests de charge, temps de réponse et utilisation mémoire
 import pytest
 import time
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, patch
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import psutil

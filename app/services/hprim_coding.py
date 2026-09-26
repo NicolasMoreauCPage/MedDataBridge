@@ -108,23 +108,15 @@ class HprimXmlGenerator:
         return self._prettify_xml(root)
 
     def generate_etat_patient(self, message: HprimMessage) -> str:
-        """Génère un message XML d'état patient."""
-        root = ET.Element("hprim:etat_patient", self.namespaces)
-        root.set('version', self.version)
+        """Refuse l'émission d'état patient tant que son contrat n'est pas qualifié.
 
-        # En-tête
-        header = ET.SubElement(root, "hprim:entete")
-        self._add_header_info(header, message)
-
-        # Patient
-        patient_elem = ET.SubElement(root, "hprim:patient")
-        self._add_patient_info(patient_elem, message.patient)
-
-        # État patient (diagnostics, dépendance, etc.)
-        ET.SubElement(root, "hprim:etat")
-        # TODO: Implémenter selon spécifications
-
-        return self._prettify_xml(root)
+        L'ancienne implémentation produisait un XML vide qui pouvait être pris
+        à tort pour un message HPRIM conforme. Seuls les échanges d'actes sont
+        actuellement revendiqués et exposés par le produit.
+        """
+        raise NotImplementedError(
+            "HPRIM état patient n'est pas pris en charge : le contrat n'est pas qualifié."
+        )
 
     def _add_header_info(self, header_elem: ET.Element, message: HprimMessage) -> None:
         """Ajoute les informations d'en-tête."""

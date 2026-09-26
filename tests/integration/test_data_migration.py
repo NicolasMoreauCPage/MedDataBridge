@@ -5,20 +5,13 @@ Tests des migrations de schémas DB et transformations de données existantes
 """
 
 import pytest
-import os
-import tempfile
-from pathlib import Path
 from datetime import datetime
-from unittest.mock import Mock, patch
 from sqlmodel import Session, select, text
 from sqlalchemy import inspect
 
-from app.db import init_db, engine, get_session
-from app.models import Patient, Dossier, Venue, Chambre, Lit
-from app.models_structure import GHTContext
-from app.services.patients_service import create_patient
-from app.services.dossiers_service import create_dossier
-from app.services.venues_service import create_venue
+from app.db import engine
+from app.models import Patient, Dossier
+from app.services.patients_service import PatientCreateSchema, create_patient
 
 
 @pytest.mark.integration
@@ -277,8 +270,6 @@ class TestDataMigration:
     def test_migration_performance_large_dataset(self, session: Session, sample_ght):
         """Test performance de migration sur gros volumes de données"""
         import time
-        from app.services.patients_service import PatientCreateSchema, create_patient
-
         # Créer un grand nombre de patients pour tester la performance
         start_time = time.time()
         patients_created = 0

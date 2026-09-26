@@ -3,7 +3,6 @@
 Tests pour les ressources génériques (ZGEN) - chambres et lits sans contraintes d'occupation
 """
 
-import pytest
 import uuid
 from sqlmodel import Session, select
 from app.models_structure import Chambre, Lit
@@ -16,7 +15,6 @@ from app.services.structure_validation import (
     get_available_rooms,
     get_available_beds
 )
-from app.db import get_session
 
 
 class TestGenericResources:

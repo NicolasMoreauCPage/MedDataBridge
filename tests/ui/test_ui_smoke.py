@@ -43,4 +43,4 @@ def test_homepage_preflight_and_toggle():
                 found = True
 
     assert found, "Preflight snippet or theme toggle not found in server response or template"
-    append_audit(f"PASS: test_homepage_preflight_and_toggle")
+    append_audit("PASS: test_homepage_preflight_and_toggle")

@@ -1,6 +1,5 @@
-from app.services.emit_on_create import generate_pam_hl7, _snapshot_entity
+from app.services.emit_on_create import generate_pam_hl7
 from sqlmodel import Session
-import re
 
 
 def test_pid5_includes_name_type(session: Session):

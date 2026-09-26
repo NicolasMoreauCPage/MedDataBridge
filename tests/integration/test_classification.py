@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """Test de la classification des identifiants"""
-import pytest
 import sys
 sys.path.insert(0, '.')
 
-# Import all models to resolve relationships
-from app.models import *
-from app.db import get_session, session_factory
+from app import models as app_models
+from app.db import session_factory
 from app.services.identifier_namespace_classifier import classify_incoming_identifiers
 from app.models_identifiers import IdentifierType
 
 
 def test_classify_incoming_identifiers():
     """Test de classification des identifiants entrants"""
+    # L'import enregistre les relations SQLModel nécessaires au service.
+    assert app_models.Patient is not None
     with session_factory() as session:
 
         # Simuler des identifiants reçus dans un message HL7
@@ -37,7 +37,7 @@ def test_classify_incoming_identifiers():
 
         print(f"✅ main_identifier: {result.get('main_identifier')}")
         print(f"📝 external_id: {result.get('external_id')}")
-        print(f"\n🔑 external_identifiers:")
+        print("\n🔑 external_identifiers:")
         for ext_id in result.get('external_identifiers', []):
             print(f"  - {ext_id['value']} (system={ext_id['system']}, type={ext_id['type'].value})")
 

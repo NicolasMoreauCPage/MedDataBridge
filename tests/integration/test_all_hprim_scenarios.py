@@ -16,9 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from sqlmodel import select, Session
 from app.db import engine
-from app.models_structure import EntiteJuridique, UniteFonctionnelle
 from app.models_scenarios import InteropScenario, InteropScenarioStep
-from app.models_scenario_config import ScenarioEJConfig
 from app.models_endpoints import SystemEndpoint
 from app.services.transport_inbound import on_message_inbound
 from app.services.hprim.hprim_xml import HprimXmlService

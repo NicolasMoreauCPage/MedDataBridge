@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from app.db import engine
-from app.models_scenarios import InteropScenario, InteropScenarioStep
+from app.models_scenarios import InteropScenario
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 

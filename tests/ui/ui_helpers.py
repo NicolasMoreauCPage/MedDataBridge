@@ -1,5 +1,7 @@
 # Helpers communs pour les tests UI Playwright
-import time, pytest, httpx
+import time
+import pytest
+import httpx
 
 # Messages connus et sans rapport avec un bug applicatif (ex: avertissement du CDN
 # Tailwind utilisé en dev), à ignorer lors de la capture d'erreurs console.

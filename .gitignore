@@ -17,6 +17,7 @@ venv/
 wheelhouse/
 deployment/**/dependencies*/
 docs/reports/pam_import_report.json
+docs/reports/*.json.gz
 
 # Base de données SQLite (y compris fichiers WAL/SHM) : toujours ignorée,
 # quel que soit le nom (medbridge.db, data/medbridge.db, etc.).

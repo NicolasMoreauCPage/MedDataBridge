@@ -13,7 +13,7 @@ os.environ['PAM_AUTO_CREATE_UF'] = '1'
 sys.path.insert(0, os.path.dirname(__file__))
 
 from app.services.transport_inbound import on_message_inbound_async
-from app.db import get_session, session_factory
+from app.db import session_factory
 from app.models_shared import SystemEndpoint
 
 async def test():
@@ -35,12 +35,12 @@ async def test():
             from sqlalchemy import text
             patients = session.execute(text("SELECT COUNT(*) FROM patient")).scalar()
             identifiers = session.execute(text("SELECT COUNT(*) FROM identifier")).scalar()
-            print(f"\nDatabase stats:")
+            print("\nDatabase stats:")
             print(f"  Patients: {patients}")
             print(f"  Identifiers: {identifiers}")
         
-    except Exception as e:
-        print(f"\n=== ERROR ===")
+    except Exception:
+        print("\n=== ERROR ===")
         print(traceback.format_exc())
 
 if __name__ == "__main__":

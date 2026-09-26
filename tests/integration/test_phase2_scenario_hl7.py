@@ -5,10 +5,7 @@ Sample scenarios from database to identify problematic HL7
 """
 
 import asyncio
-import sys
-from pathlib import Path
-from sqlmodel import Session, select, create_engine
-from app.db import get_session, init_db
+from sqlmodel import Session, select
 from app.models_scenarios import InteropScenario, InteropScenarioStep
 from hl7_import_validator import HL7ImportValidator, ValidationResult, HL7ImportQualityReport
 
@@ -71,7 +68,7 @@ async def validate_scenario_hl7():
     print("\n📊 DETAILED ANALYSIS")
     print("="*80)
     
-    print(f"\nByTrigger Distribution:")
+    print("\nByTrigger Distribution:")
     trigger_counts = {}
     for r in report.reports:
         trigger = r.trigger

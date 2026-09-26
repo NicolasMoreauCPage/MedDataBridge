@@ -9,8 +9,7 @@ Ces tests valident que l'héritage fonctionne correctement selon les règles mé
 """
 
 import unittest
-from datetime import datetime, date
-from unittest.mock import Mock, patch
+from datetime import date
 
 from app.models_structure import (
     EntiteGeographique,

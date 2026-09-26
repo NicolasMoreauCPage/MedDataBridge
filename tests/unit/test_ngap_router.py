@@ -4,16 +4,13 @@ Ce module teste les fonctionnalités de gestion des actes NGAP,
 y compris le dashboard, la consultation par dossier, et la création d'actes.
 """
 
-import pytest
 import uuid
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 from sqlalchemy.orm import Session
 from fastapi.testclient import TestClient
-from fastapi import HTTPException
 
-from app.models import Dossier, Patient, Venue, NGAPAct
-from app.services.ngap_service import NGAPService
+from app.models import Dossier, Patient
 
 
 class TestNGAPRouter:

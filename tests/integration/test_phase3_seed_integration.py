@@ -40,12 +40,10 @@ def test_seed_imports():
         sys.path.insert(0, '/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/scripts_manual')
         
         # Vérifier que les dépendances existent
-        from app.db import engine
-        from app.models_scenarios import InteropScenario, InteropScenarioStep
         print('  ✓ Dépendances DB importées avec succès')
         
         # Vérifier que la fonction de seed peut être importée
-        from seed_hl7_scenarios import seed_hl7_scenarios, _save_corrections_report
+        from seed_hl7_scenarios import seed_hl7_scenarios
         print('  ✓ Seed functions importées avec succès')
         assert seed_hl7_scenarios is not None
     except Exception as e:
@@ -76,18 +74,18 @@ def test_validator_functionality():
     print(f'  Status: {report.status.name}')
     
     if report.status == ValidationResult.FIXABLE:
-        print(f'  ✓ Message reconnu comme FIXABLE')
+        print('  ✓ Message reconnu comme FIXABLE')
         if report.corrected_message:
-            print(f'  ✓ Message corrigé disponible')
+            print('  ✓ Message corrigé disponible')
             # Vérifier que MSH-3 a été ajouté
             if 'MEDBRIDGEDATA' in report.corrected_message:
-                print(f'  ✓ Correction MSH-3 appliquée (MEDBRIDGEDATA)')
+                print('  ✓ Correction MSH-3 appliquée (MEDBRIDGEDATA)')
             return True
         else:
-            print(f'  ✗ Message corrigé non disponible')
+            print('  ✗ Message corrigé non disponible')
             return False
     elif report.status == ValidationResult.VALID:
-        print(f'  ✓ Message reconnu comme VALID')
+        print('  ✓ Message reconnu comme VALID')
         return True
     else:
         print(f'  ✗ Message rejeté: {report.errors}')
@@ -121,10 +119,10 @@ def test_corrections_report_function(tmp_path):
             print(f'  ✓ Rapport créé: {report_path}')
             content = report_path.read_text()
             assert 'Test Scenario 1' in content and 'A01' in content
-            print(f'  ✓ Contenu du rapport correct')
+            print('  ✓ Contenu du rapport correct')
             return
         else:
-            print(f'  ✗ Rapport non créé')
+            print('  ✗ Rapport non créé')
             pytest.fail('Le rapport de corrections n’a pas été créé')
     except Exception as e:
         print(f'  ✗ Erreur: {e}')

@@ -6,13 +6,11 @@ Tests de prévention des injections SQL, XSS, path traversal
 
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, patch
 from sqlmodel import Session
 
 from app.app import app
 from app.models import Patient
 from app.services.patients_service import PatientCreateSchema, create_patient
-from app.models_structure import GHTContext
 
 
 @pytest.mark.security

@@ -14,10 +14,9 @@ Ces tests couvrent les fonctionnalités principales.
 """
 
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from datetime import datetime, date
-from fastapi import Request, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import HTTPException
 
 # Import direct pour éviter les conflits
 from app.routers.structure import (
@@ -56,7 +55,7 @@ class TestStructureRouter(unittest.TestCase):
     def test_build_structure_tree_basic(self):
         """Test construction de l'arbre structure de base."""
         from app.routers.structure import build_structure_tree
-        from app.models_structure import EntiteGeographique, Pole, Service
+        from app.models_structure import EntiteGeographique
 
         mock_session = Mock()
 
@@ -224,7 +223,6 @@ class TestStructureRouter(unittest.TestCase):
     @unittest.skip("Async function testing requires pytest-asyncio - simplified for unittest compatibility")
     def test_list_poles_basic(self):
         """Test listing des pôles - cas de base."""
-        from app.routers.structure import list_poles
 
         mock_request = Mock()
         mock_session = Mock()
@@ -272,7 +270,6 @@ class TestStructureRouter(unittest.TestCase):
     @unittest.skip("Async function testing requires pytest-asyncio - simplified for unittest compatibility")
     def test_list_poles_api(self):
         """Test API listing des pôles."""
-        from app.routers.structure import list_poles_api
 
         mock_session = Mock()
 
@@ -323,7 +320,6 @@ class TestStructureRouter(unittest.TestCase):
     @unittest.skip("Async function testing requires pytest-asyncio - simplified for unittest compatibility")
     def test_import_structure_hl7_missing_ght_context(self):
         """Test import HL7 sans contexte GHT."""
-        from app.routers.structure import import_structure_hl7
 
         mock_request = Mock()
         mock_session = Mock()
@@ -345,7 +341,6 @@ class TestStructureRouter(unittest.TestCase):
     @unittest.skip("Async function testing requires pytest-asyncio - simplified for unittest compatibility")
     def test_import_structure_hl7_empty_payload(self):
         """Test import HL7 avec payload vide."""
-        from app.routers.structure import import_structure_hl7
 
         mock_request = Mock()
         mock_session = Mock()
@@ -367,7 +362,6 @@ class TestStructureRouter(unittest.TestCase):
     @unittest.skip("Async function testing requires pytest-asyncio - simplified for unittest compatibility")
     def test_import_structure_hl7_invalid_content(self):
         """Test import HL7 avec contenu invalide."""
-        from app.routers.structure import import_structure_hl7
 
         mock_request = Mock()
         mock_session = Mock()

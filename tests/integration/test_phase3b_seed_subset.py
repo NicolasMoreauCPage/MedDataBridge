@@ -5,7 +5,6 @@ This script runs the seed on just the first 5 scenarios to verify integration wo
 """
 
 import sys
-import os
 from pathlib import Path
 
 import pytest
@@ -17,9 +16,8 @@ sys.path.insert(0, '/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/scripts
 from app.db import engine
 from app.models_scenarios import InteropScenario, InteropScenarioStep
 from sqlmodel import Session, select
-from datetime import datetime
 from hl7_import_validator import HL7ImportValidator, ValidationResult
-from seed_hl7_scenarios import extract_hl7_messages, extract_trigger_from_message, get_scenario_name_from_path, _save_corrections_report
+from seed_hl7_scenarios import extract_hl7_messages, extract_trigger_from_message, get_scenario_name_from_path
 
 
 # Script de seed historique : chemins absolus et base locale requis.
@@ -44,7 +42,7 @@ def test_seed_with_validator_subset():
     print('=' * 70)
     print(f'📂 Source directory: {base_path}')
     print(f'📄 Total HL7 files: {len(hl7_files)}')
-    print(f'🔍 Testing first 3 files...\n')
+    print('🔍 Testing first 3 files...\n')
     
     # Initialize validator
     validator = HL7ImportValidator(mode="LENIENT")
@@ -142,7 +140,7 @@ def test_seed_with_validator_subset():
                     print(f'   {status_icon} Step {order_idx} ({trigger}): {validation_report.status.name}')
                 
                 session.commit()
-                print(f'   ✓ Scenario saved to database')
+                print('   ✓ Scenario saved to database')
         
         except Exception as e:
             print(f'   ✗ Error: {str(e)[:100]}')
@@ -157,7 +155,7 @@ def test_seed_with_validator_subset():
     print(f'❌ Rejected: {rejected_count} ({rejected_count*100/max(1,total_messages):.1f}%)')
     
     if corrections_log:
-        print(f'\n📋 Corrections appliquées:')
+        print('\n📋 Corrections appliquées:')
         for i, correction in enumerate(corrections_log, 1):
             print(f'   {i}. {correction["scenario"]} - Step {correction["step"]} ({correction["trigger"]})')
             for error in correction['errors'][:1]:

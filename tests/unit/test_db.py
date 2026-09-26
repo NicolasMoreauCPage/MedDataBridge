@@ -13,13 +13,12 @@ import unittest
 import os
 import subprocess
 import sys
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from datetime import datetime
-from sqlmodel import Session, SQLModel
+from sqlmodel import Session
 
 # Import direct pour éviter les conflits
 from app.db import (
-    engine,
     init_db,
     migrate_database,
     get_session,

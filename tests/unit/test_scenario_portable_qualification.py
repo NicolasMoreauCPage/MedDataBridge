@@ -1,4 +1,4 @@
-from app.models_scenarios import InteropScenario, InteropScenarioStep
+from app.models_scenarios import InteropScenarioStep
 from app.models_structure import GHTContext
 from app.services.scenario_import import import_scenario_from_json
 

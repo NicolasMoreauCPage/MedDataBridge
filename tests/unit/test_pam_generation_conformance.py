@@ -4,7 +4,6 @@ PAM Generation Conformance Tests - Audit des messages IHE PAM générés.
 Valide que les messages générés par `generate_pam_messages_for_dossier` 
 sont conformes à la spécification IHE PAM France et HL7 v2.5.
 """
-import pytest
 from datetime import datetime, timezone
 from sqlmodel import SQLModel, create_engine, Session
 

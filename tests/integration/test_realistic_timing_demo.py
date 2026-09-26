@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Script de test des configurations temporelles automatiques pour tous les scénarios."""
 
-import json
 import time
 
 import pytest
@@ -37,7 +36,7 @@ def test_scenario_timing_detection():
                 print(f"Séquence d'événements: {data['analysis']['event_sequence']}")
                 
                 suggested = data['suggested_config']
-                print(f"Configuration suggérée:")
+                print("Configuration suggérée:")
                 print(f"  - Ancrage: {suggested['time_anchor_mode']}")
                 if suggested.get('time_anchor_days_offset'):
                     print(f"  - Décalage jours: {suggested['time_anchor_days_offset']}")

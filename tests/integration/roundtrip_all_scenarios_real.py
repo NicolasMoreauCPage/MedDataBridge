@@ -6,7 +6,6 @@ Envoie les messages via on_message_inbound_async et récupère les ACK codes ré
 
 import sys
 import asyncio
-import json
 from datetime import datetime
 from pathlib import Path
 
@@ -14,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from sqlmodel import select, Session
 from app.db import engine
-from app.models_scenarios import InteropScenario, InteropScenarioStep
+from app.models_scenarios import InteropScenario
 from app.models_scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog
 from app.models_endpoints import SystemEndpoint
 from app.services.transport_inbound import on_message_inbound_async
@@ -119,7 +118,7 @@ async def process_scenario(scenario_id: int, endpoint_id: int):
 
 
 async def main():
-    print(f"🚀 VRAI Roundtrip (v2)")
+    print("🚀 VRAI Roundtrip (v2)")
     print(f"⏰ Début: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"📍 EJ ID: {TEST_EJ_ID}")
     print("=" * 80)
@@ -188,7 +187,7 @@ async def main():
                 print(f"❌ ERROR ({ack_codes})")
             elif status == "no_steps":
                 results["no_steps"].append(name)
-                print(f"⏹️  NO_STEPS")
+                print("⏹️  NO_STEPS")
             else:
                 print(f"❓ {status}")
         

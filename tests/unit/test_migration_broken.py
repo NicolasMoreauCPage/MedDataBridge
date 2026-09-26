@@ -12,7 +12,6 @@ from datetime import datetime
 
 from alembic import op
 import sqlalchemy as sa
-import sqlmodel
 
 
 # revision identifiers, used by Alembic.
@@ -35,7 +34,6 @@ def upgrade() -> None:
     import sys
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-    from app.models_scenarios import InteropScenario, InteropScenarioStep
 
     # Find the JSON export file
     json_file = None
@@ -168,7 +166,7 @@ def upgrade() -> None:
         inserted_scenarios += 1
         print(f"  ✅ {scenario_data['name']}: inséré ({len(scenario_data['steps'])} étapes)")
 
-    print(f"\\n📊 Migration terminée:")
+    print("\\n📊 Migration terminée:")
     print(f"  ✅ Scénarios insérés: {inserted_scenarios}")
     print(f"  📋 Étapes insérées: {inserted_steps}")
 

@@ -7,7 +7,6 @@ Vérification que les services se chargent correctement
 import sys
 import os
 from datetime import datetime
-from decimal import Decimal
 
 # Activer l'environnement virtuel
 venv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.venv', 'bin', 'activate_this.py')

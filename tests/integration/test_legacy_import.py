@@ -5,18 +5,11 @@ Tests d'import de données anciennes et validation/nettoyage
 """
 
 import pytest
-import os
-import tempfile
-from pathlib import Path
 from datetime import datetime
-from unittest.mock import Mock, patch, mock_open
 from sqlmodel import Session, select
 
-from app.db import get_session
-from app.models import Patient, Dossier, Venue
-from app.models_structure import GHTContext
+from app.models import Patient
 from app.services.patients_service import PatientCreateSchema, create_patient
-from app.services.dossiers_service import create_dossier
 from app.services.venues_service import create_venue
 
 

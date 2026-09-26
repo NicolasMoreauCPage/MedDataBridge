@@ -6,28 +6,19 @@ les valeurs locales et effectives avec les métadonnées d'héritage.
 """
 
 import unittest
-from datetime import datetime, date
+from datetime import date
 from unittest.mock import Mock, patch
-from fastapi.testclient import TestClient
-from fastapi import FastAPI, Depends, HTTPException
-from starlette.middleware.sessions import SessionMiddleware
-from starlette.middleware.sessions import SessionMiddleware
+from fastapi import HTTPException
 
-from fastapi import APIRouter
 
 from app.models_structure import (
     EntiteGeographique,
     Pole,
     Service,
-    UniteFonctionnelle,
-    UniteHebergement,
-    Chambre,
-    Lit,
     LocationStatus,
     LocationMode,
     LocationPhysicalType,
 )
-from app.db import get_session
 
 
 # Helper to run async coroutines from sync tests even when an event loop
@@ -150,9 +141,6 @@ async def get_pole_api_data(pole_id: int, session):
         },
     }
 
-
-class TestInheritanceAPI(unittest.TestCase):
-    """Tests pour les endpoints API d'héritage."""
 
 class TestInheritanceAPI(unittest.TestCase):
     """Tests pour les endpoints API d'héritage."""

@@ -7,18 +7,14 @@ Tests JWT, rôles, sessions, rate limiting
 import pytest
 import time
 from datetime import timedelta
-from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
-from fastapi import HTTPException
 from jose import jwt as jose_jwt
 
 from app.app import create_app
 from config.settings import Settings
 from app.auth import (
-    authenticate_user, create_access_token, create_refresh_token,
-    decode_token, get_current_user, require_role, RoleChecker,
-    UserInDB, Token, ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM,
-    blacklist_token, is_token_blacklisted
+    create_access_token, RoleChecker,
+    ALGORITHM
 )
 from app.models.users import LocalUser
 
@@ -430,7 +426,6 @@ class TestAuthentication:
         user_token = login_response.json()["access_token"]
 
         # Créer un endpoint de test qui accepte admin ou user
-        from app.auth import RoleChecker
         checker = RoleChecker(["admin", "user"])
 
         # Tester avec admin - devrait réussir

@@ -4,7 +4,6 @@ from app.models_structure import (
     EntiteGeographique, Pole, Service, UniteFonctionnelle,
     UniteHebergement, Chambre, Lit
 )
-from sqlmodel import select
 
 
 def test_generate_mfn_includes_all_types_and_lrl():

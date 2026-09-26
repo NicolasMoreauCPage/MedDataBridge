@@ -6,7 +6,6 @@ Ce module génère des identifiants uniques basés sur timestamp pour Patient, D
 
 import unittest
 from unittest.mock import patch
-import time
 from app.utils.seq_generator import (
     generate_patient_seq,
     generate_dossier_seq,

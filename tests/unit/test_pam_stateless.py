@@ -1,4 +1,3 @@
-import pytest
 
 from app.services.pam_validation import validate_pam
 

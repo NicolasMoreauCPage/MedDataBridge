@@ -3,12 +3,11 @@ Tests for HPRIM Cotation UI Routes (/hprim-cotation/*)
 Tests dashboard, message detail, dossier aggregation, and import workflows
 """
 
-import json
 from datetime import datetime
 from fastapi.testclient import TestClient
-from sqlmodel import Session, select
+from sqlmodel import Session
 
-from app.models import Dossier, Patient, CCAMAct, NGAPAct, UCDAct, LPPAct
+from app.models import Dossier, Patient
 from app.models.hprim_models import HprimMessage
 
 

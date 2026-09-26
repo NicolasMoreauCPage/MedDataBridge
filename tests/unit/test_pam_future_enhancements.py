@@ -8,16 +8,11 @@ Tests for advanced validation features introduced in v2.1:
 4. Audit trail generation
 """
 
-import pytest
-import json
-from pathlib import Path
-from datetime import datetime
 
 from app.services.pam_validation import (
     validate_pam,
     validate_pam_semantics,
     ValidationResult,
-    ValidationIssue,
     ValidationAuditEntry,
 )
 

@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 """Test script to verify MessageLog duplicate fix."""
 import asyncio
-import sqlite3
-from datetime import datetime
-from pathlib import Path
 
 import pytest
 
@@ -51,7 +48,7 @@ async def test_no_duplicates():
         print(f"📊 Messages avant test: {len(count_before)}")
     
     # Send message
-    print(f"\n📤 Envoi du message test (correlation_id: TEST123456)...")
+    print("\n📤 Envoi du message test (correlation_id: TEST123456)...")
     
     with Session(engine) as session:
         ack = await on_message_inbound_async(TEST_MESSAGE, session, endpoint)
@@ -76,7 +73,7 @@ async def test_no_duplicates():
             return False
         elif count == 1:
             msg = messages[0]
-            print(f"\n✅ UN SEUL message créé (comme attendu)")
+            print("\n✅ UN SEUL message créé (comme attendu)")
             print(f"   ID: {msg.id}")
             print(f"   Status: {msg.status}")
             print(f"   Type: {msg.message_type}")

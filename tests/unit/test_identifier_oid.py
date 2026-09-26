@@ -13,7 +13,7 @@ os.environ['LOG_LEVEL'] = 'DEBUG'
 sys.path.insert(0, os.path.dirname(__file__))
 
 from app.services.transport_inbound import on_message_inbound_async
-from app.db import get_session, session_factory
+from app.db import session_factory
 from app.models_shared import SystemEndpoint
 
 async def test():

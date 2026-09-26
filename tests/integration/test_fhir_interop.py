@@ -9,14 +9,12 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 from sqlmodel import Session, select
 
-from app.models import Patient, Dossier, DossierType
+from app.models import DossierType
 from app.services.patients_service import PatientCreateSchema, create_patient
 from app.services.dossiers_service import DossierCreateSchema, create_dossier_with_pre_admit_venue
 from app.services.fhir_export_service import FHIRExportService
 from app.services.fhir_import_service import FHIRImportService
-from app.models_structure import GHTContext, EntiteJuridique
-from fhir.resources.bundle import Bundle
-from fhir.resources.patient import Patient as FHIRPatient
+from app.models_structure import EntiteJuridique
 
 
 @pytest.mark.integration

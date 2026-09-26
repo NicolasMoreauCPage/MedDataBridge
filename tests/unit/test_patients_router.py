@@ -14,9 +14,8 @@ import pytest
 from datetime import date
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
-from app.models import Patient, Dossier
+from app.models import Patient
 from app.models_structure import GHTContext, EntiteJuridique
-from app.services.patients_service import PatientCreateSchema
 
 # Passe à 100% en isolation (`pytest tests/unit/test_patients_router.py`) mais échoue de façon
 # non déterministe dans la suite complète, selon l'ordre d'exécution. La route de mise à jour
@@ -387,7 +386,7 @@ def test_create_patient_from_form_validation_error(client: TestClient, session: 
 
 def test_list_patients_with_ej_context(client: TestClient, session: Session):
     """Test liste patients filtrée par contexte EJ"""
-    from app.models_structure import GHTContext, EntiteJuridique
+    from app.models_structure import GHTContext
 
     # Créer GHT et EJ
     ght = GHTContext(name="Test GHT", code="TST")

@@ -15,7 +15,6 @@ from app.services.patient_merge import (
     _parse_mrg_segment,
     _find_patient_by_identifiers,
 )
-from app.services.mllp import build_ack
 
 
 @pytest.fixture
@@ -148,9 +147,9 @@ async def test_merge_patient_basic(session: Session):
     
     # Construire message A40
     message = (
-        f"MSH|^~\\&|SENDER|SENDFAC|RECV|RECVFAC|20250103120000||ADT^A40|12345|P|2.5\r"
-        f"PID|||SURV001^^^HOSPITAL^PI||DUPONT^JEAN^||19850615|M\r"
-        f"MRG|SRC001^^^HOSPITAL^PI||||||DUPONT^JEAN^\r"
+        "MSH|^~\\&|SENDER|SENDFAC|RECV|RECVFAC|20250103120000||ADT^A40|12345|P|2.5\r"
+        "PID|||SURV001^^^HOSPITAL^PI||DUPONT^JEAN^||19850615|M\r"
+        "MRG|SRC001^^^HOSPITAL^PI||||||DUPONT^JEAN^\r"
     )
     
     pid_data = {
@@ -249,9 +248,9 @@ async def test_merge_patient_with_venues_and_mouvements(session: Session):
     
     # Message A40
     message = (
-        f"MSH|^~\\&|SENDER|SENDFAC|RECV|RECVFAC|20250103120000||ADT^A40|67890|P|2.5\r"
-        f"PID|||SURV002^^^HOSPITAL^PI||MARTIN^PIERRE^||19750410|M\r"
-        f"MRG|SRC002^^^HOSPITAL^PI||||||MARTIN^PIERRE^\r"
+        "MSH|^~\\&|SENDER|SENDFAC|RECV|RECVFAC|20250103120000||ADT^A40|67890|P|2.5\r"
+        "PID|||SURV002^^^HOSPITAL^PI||MARTIN^PIERRE^||19750410|M\r"
+        "MRG|SRC002^^^HOSPITAL^PI||||||MARTIN^PIERRE^\r"
     )
     
     pid_data = {

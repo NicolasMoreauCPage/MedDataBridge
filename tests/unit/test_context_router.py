@@ -8,7 +8,6 @@ Couvre la gestion des contextes de session :
 - Effacement des contextes
 """
 
-import pytest
 import uuid
 from fastapi.testclient import TestClient
 from sqlmodel import Session

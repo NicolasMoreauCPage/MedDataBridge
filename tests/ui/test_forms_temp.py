@@ -1,4 +1,6 @@
-import pytest, time, httpx
+import pytest
+import time
+import httpx
 from urllib.parse import urljoin
 from playwright.sync_api import expect
 from .ui_helpers import capture_console_errors
@@ -36,7 +38,6 @@ def safe_navigate(page, url: str, timeout_ms: int = 10000):
 def test_server():
     """Fast API test server"""
     # Import here so we don't get pytest collection errors
-    from fastapi.testclient import TestClient
     from app.app import create_app
     app = create_app()
     return app
@@ -44,7 +45,6 @@ def test_server():
 @pytest.mark.timeout(60)  # Set timeout for slow UI tests
 def test_required_fields(page, test_server):
     """Test validation of required fields in the patient form."""
-    from urllib.parse import urljoin
     errors = capture_console_errors(page)
     test_url = urljoin('http://localhost:8000', '/')
 

@@ -8,7 +8,6 @@ import json
 from sqlmodel import select
 from app.db import session_factory
 from app.models import Mouvement
-from app.models_practitioners import MedecinResponsable  # Import pour résoudre les relations
 from app.services.fhir_encounters import generate_encounter_resource_for_mouvement
 
 

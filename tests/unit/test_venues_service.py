@@ -8,9 +8,8 @@ Ce service gère :
 """
 
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from datetime import datetime
-from sqlmodel import Session
 
 # Import direct pour éviter les conflits
 from app.services.venues_service import (

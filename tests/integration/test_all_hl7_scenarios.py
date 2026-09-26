@@ -5,7 +5,6 @@ Itère sur chaque scénario et effectue un test de matérialisation + reim port.
 """
 
 import sys
-import json
 from datetime import datetime
 from pathlib import Path
 
@@ -15,18 +14,14 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from sqlmodel import select, Session
 from app.db import engine
-from app.models_structure import EntiteJuridique, UniteFonctionnelle
-from app.models_scenarios import InteropScenario, InteropScenarioStep
-from app.models_scenario_config import ScenarioEJConfig
+from app.models_scenarios import InteropScenario
 from app.models_endpoints import SystemEndpoint
-from app.services.scenario_template_materializer import materialize_template, MaterializationOptions
-from app.services.transport_inbound import on_message_inbound
 
 TEST_EJ_ID = 1
 TEST_OUTPUT_DIR = Path("tmp/all_scenarios_roundtrip")
 TEST_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-print(f"🚀 Test roundtrip DE TOUS LES SCÉNARIOS")
+print("🚀 Test roundtrip DE TOUS LES SCÉNARIOS")
 print(f"⏰ Début: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 print(f"📍 EJ ID: {TEST_EJ_ID}")
 print("=" * 80)

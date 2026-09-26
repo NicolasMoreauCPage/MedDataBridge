@@ -3,7 +3,6 @@
 Phase 1: Test validator on real HL7 data from tests/artifacts/
 """
 
-import sys
 from pathlib import Path
 from hl7_import_validator import HL7ImportValidator, ValidationResult, HL7ImportQualityReport
 

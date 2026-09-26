@@ -10,7 +10,6 @@ Ce script effectue un test complet :
 6. Vérifie la conformité des données importées
 """
 
-import os
 import sys
 import json
 from datetime import datetime
@@ -20,11 +19,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from sqlmodel import select, Session
-from app.db import get_session, engine
 from app.models_structure import EntiteJuridique, UniteFonctionnelle
-from app.models_scenarios import ScenarioTemplate, InteropScenario, InteropScenarioStep
+from app.models_scenarios import ScenarioTemplate, InteropScenario
 from app.models_scenario_config import ScenarioEJConfig
-from app.models_shared import SystemEndpoint
 from app.services.scenario_template_materializer import materialize_template, MaterializationOptions
 
 
@@ -232,7 +229,7 @@ def export_messages(session: Session, scenario: InteropScenario) -> list[Path]:
     with open(metadata_file, 'w', encoding='utf-8') as f:
         json.dump(metadata, f, indent=2, ensure_ascii=False)
     
-    print(f"  - scenario_metadata.json (métadonnées)")
+    print("  - scenario_metadata.json (métadonnées)")
     print(f"  ✓ {len(exported_files)} fichiers exportés")
     
     return exported_files
@@ -331,7 +328,7 @@ def verify_messages(session: Session, exported_files: list[Path]) -> dict:
             print(f"      ⚠ {err}")
     
     # Résumé
-    print(f"\n  Résumé:")
+    print("\n  Résumé:")
     print(f"  - Messages valides: {results['valid']}/{results['total']}")
     print(f"  - UF trouvées: {results['uf_found']}")
     print(f"  - RPPS trouvés: {results['rpps_found']}")
@@ -443,7 +440,7 @@ def parse_and_reimport(session: Session, exported_files: list[Path]) -> dict:
     # Exécuter le traitement async
     asyncio.run(process_messages())
     
-    print(f"\n  Résumé réimport:")
+    print("\n  Résumé réimport:")
     print(f"  - Messages traités: {results['parsed']}/{len(exported_files)}")
     print(f"  - ACK AA (succès): {results['ack_aa']}")
     print(f"  - ACK AE (erreur app): {results['ack_ae']}")

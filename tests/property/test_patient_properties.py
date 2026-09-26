@@ -8,7 +8,7 @@ import pytest
 from hypothesis import given, strategies as st, assume, settings, HealthCheck
 from hypothesis.strategies import composite
 from sqlmodel import Session
-from datetime import date, datetime
+from datetime import date
 
 from app.models import Patient
 from app.services.patients_service import PatientCreateSchema, create_patient, update_patient, PatientUpdateSchema

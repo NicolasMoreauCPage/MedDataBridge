@@ -1,9 +1,7 @@
 """
 Tests de la gestion des identifiants et des domaines d'identification
 """
-import pytest
-from datetime import datetime
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from app.models_identifiers import Identifier, IdentifierType
 from app.models import Patient

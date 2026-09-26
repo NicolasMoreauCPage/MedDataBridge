@@ -1,7 +1,6 @@
 from fastapi.testclient import TestClient
 from app.app import app
 from app.db import session_factory
-from sqlmodel import select
 from app.models_structure import EntiteGeographique, Pole, EntiteJuridique, GHTContext
 
 

@@ -1,9 +1,9 @@
 import pytest
 from datetime import datetime
-from sqlmodel import Session, select
+from sqlmodel import Session
 from app.models import Dossier, DossierType, Venue, Mouvement
 from app.services import dossier_service
-from app.utils.dossier_validators import validate_dossier_type_change, check_movements_compatibility
+from app.utils.dossier_validators import validate_dossier_type_change
 
 @pytest.fixture
 def dossier(session: Session):

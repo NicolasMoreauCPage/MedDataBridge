@@ -11,7 +11,6 @@ confirmed against real production captures under data/pam/ where several genuine
 A05 -> A04 sequences (same PID-18, PV1-2=O) exist for outpatient/emergency visits.
 """
 import pytest
-from datetime import datetime, timezone
 
 from app.services.message_router import IHEMessageRouter
 from app.models import Patient, Dossier, Venue

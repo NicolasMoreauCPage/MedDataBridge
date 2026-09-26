@@ -3,8 +3,7 @@
 Tests d'intégration pour l'initialisation des ressources génériques ZGEN
 """
 
-import pytest
-from sqlmodel import Session, select
+from sqlmodel import Session
 from app.models_structure import Chambre, Lit
 from app.services.structure_validation import auto_detect_generic_resources
 

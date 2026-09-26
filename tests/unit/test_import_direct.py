@@ -9,7 +9,7 @@ import asyncio
 import pytest
 
 pytestmark = pytest.mark.external
-from app.db import get_session, session_factory
+from app.db import session_factory
 from app.models_shared import SystemEndpoint
 from app.services.transport_inbound import on_message_inbound_async
 from sqlalchemy import text

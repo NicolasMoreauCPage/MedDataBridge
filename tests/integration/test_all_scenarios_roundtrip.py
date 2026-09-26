@@ -23,7 +23,7 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent))
 
 from app.db import engine
-from app.models_scenarios import InteropScenario, InteropScenarioStep
+from app.models_scenarios import InteropScenario
 from app.models_shared import SystemEndpoint
 from app.services.scenario_runner import send_scenario
 from sqlmodel import Session, select
@@ -304,19 +304,19 @@ class CompleteRoundtripTester:
         print("📊 RAPPORT FINAL - TEST ROUNDTRIP COMPLET")
         print("=" * 70)
 
-        print(f"📈 Statistiques générales:")
+        print("📈 Statistiques générales:")
         print(f"   • Total scénarios testés: {self.results['total_scenarios']}")
         print(f"   • Tests réussis: {self.results['successful_tests']}")
         success_rate = self.results['successful_tests'] / self.results['total_scenarios'] * 100 if self.results['total_scenarios'] > 0 else 0
         print(f"   • Taux de succès: {success_rate:.1f}%")
         print(f"   • Mode: {'RÉEL' if self.real_run else 'DRY-RUN'}")
 
-        print(f"\n📋 Par catégorie:")
+        print("\n📋 Par catégorie:")
         for cat, stats in self.results['by_category'].items():
             success_rate = (stats['success'] / stats['total'] * 100) if stats['total'] > 0 else 0
             print(f"   • {cat}: {stats['total']} scénarios ({success_rate:.1f}% succès)")
 
-        print(f"\n🆔 Identifiants générés:")
+        print("\n🆔 Identifiants générés:")
         print(f"   • IPP trouvés: {self.results['identifiers_found']['ipp']}")
         print(f"   • NDA trouvés: {self.results['identifiers_found']['nda']}")
         print(f"   • VENUE trouvés: {self.results['identifiers_found']['venue']}")

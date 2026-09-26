@@ -6,9 +6,9 @@ la validation des timings de mouvements, et la génération de messages PAM.
 
 import pytest
 import uuid
-from datetime import datetime, timezone, timedelta
-from unittest.mock import Mock, patch
-from sqlmodel import Session, select
+from datetime import datetime
+from unittest.mock import patch
+from sqlmodel import Session
 
 from app.services.pam import (
     validate_movement_timing,

@@ -11,7 +11,6 @@ from sqlmodel import Session, select
 
 from app.app import app
 from app.models import Patient, DossierType
-from app.models_structure import GHTContext
 from app.services.dossiers_service import create_dossier_with_pre_admit_venue
 
 
@@ -173,7 +172,7 @@ class TestPatientManagementUI:
         """Test navigation et contexte autour des patients"""
         # Créer un patient et un dossier associé
         from app.services.patients_service import PatientCreateSchema, create_patient
-        from app.services.dossiers_service import DossierCreateSchema, create_dossier
+        from app.services.dossiers_service import DossierCreateSchema
 
         patient_data = PatientCreateSchema(
             family="NavTest",

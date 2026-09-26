@@ -2,16 +2,13 @@
 Tests unitaires pour les services dossiers (sans TestClient)
 """
 
-import pytest
 from datetime import datetime
-from sqlmodel import Session, select
-from app.models import Dossier, Patient, DossierType
+from sqlmodel import Session
+from app.models import Patient, DossierType
 from app.models_structure import EntiteJuridique
 from app.services.dossiers_service import (
-    DossierCreateSchema,
     DossierUpdateSchema,
     create_dossier,
-    create_dossier_with_pre_admit_venue,
     update_dossier,
     get_dossier,
     get_dossiers

@@ -10,14 +10,11 @@ Couvre:
 """
 
 import pytest
-import asyncio
-import json
 from httpx import AsyncClient
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from app.app import create_app
-from app.tasks import task_manager, create_background_task
 from app.cache import cache
 from app.metrics import metrics
 from app.validation import PatientSearchRequest, FHIRResourceRequest
@@ -39,7 +36,6 @@ def client(test_app):
 @pytest.fixture
 async def async_client(test_app):
     """Client HTTP asynchrone pour les tests."""
-    from httpx import AsyncClient
     async with AsyncClient(app=test_app, base_url="http://testserver") as ac:
         yield ac
 

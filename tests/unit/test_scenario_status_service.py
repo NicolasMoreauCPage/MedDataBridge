@@ -4,10 +4,8 @@ Ce module teste les fonctionnalités de récupération du statut des exécutions
 de scénarios, y compris les ACK reçus et les états des scénarios.
 """
 
-import pytest
-from datetime import datetime, timezone, timedelta
-from unittest.mock import Mock
-from sqlmodel import Session, select
+from datetime import datetime, timezone
+from sqlmodel import Session
 
 from app.services.scenario_status_service import (
     ScenarioStatus,

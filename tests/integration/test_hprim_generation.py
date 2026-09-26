@@ -5,9 +5,7 @@ Test de la génération XML HPRIM
 import requests
 import time
 import subprocess
-import signal
 import os
-import sys
 
 def test_hprim_generation():
     # Lancer le serveur en arrière-plan

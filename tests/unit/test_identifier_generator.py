@@ -3,7 +3,7 @@ Tests unitaires pour le service de génération d'identifiants avec préfixes.
 """
 
 import pytest
-from sqlmodel import Session, create_engine, SQLModel, select
+from sqlmodel import Session, create_engine, SQLModel
 
 from app.models_identifiers import Identifier, IdentifierType
 from app.models_structure import IdentifierNamespace, GHTContext

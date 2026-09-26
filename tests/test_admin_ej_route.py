@@ -1,6 +1,8 @@
 """Regression test for EJ detail route without fallback router.
 """
-import os, sys, pathlib
+import os
+import sys
+import pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 os.environ["TESTING"] = "1"
 
@@ -33,7 +35,7 @@ def test_ej_detail_route_basic(client: TestClient, session: Session):
         assert resp.status_code in [200, 500]  # Accept both success and server error (template issues)
     except DetachedInstanceError:
         pytest.fail("DetachedInstanceError was raised - this indicates the session management issue is not fixed")
-    except Exception as e:
+    except Exception:
         # Other exceptions (like timeout, template errors) are acceptable for this regression test
         # The important thing is that DetachedInstanceError is not raised
         pass

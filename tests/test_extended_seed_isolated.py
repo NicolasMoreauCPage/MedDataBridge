@@ -1,7 +1,9 @@
 """Isolated test for extended multi-EJ seed without requiring Redis or full app import.
 (Placed outside the main tests/ directory to avoid loading heavy conftest.)
 """
-import os, sys, pathlib
+import os
+import sys
+import pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 os.environ["TESTING"] = "1"
 
@@ -9,7 +11,7 @@ from sqlmodel import SQLModel, create_engine, select, Session
 
 from app.models_structure import GHTContext, EntiteJuridique
 from app.models_shared import SystemEndpoint
-from app.models import Patient, Venue, Mouvement
+from app.models import Patient, Mouvement
 from app.services.structure_seed import (
     ensure_extended_demo_ght,
     ensure_endpoints_for_context,
@@ -17,8 +19,6 @@ from app.services.structure_seed import (
 )
 
 engine = create_engine("sqlite:///:memory:")
-import app.models_vocabulary  # ensure vocabulary models are registered before create_all
-import app.models_endpoints  # ensure transport configuration tables are registered
 SQLModel.metadata.create_all(engine)
 
 def session_factory_local():

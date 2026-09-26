@@ -6,11 +6,9 @@ Ce script crée un Encounter FHIR avec un Practitioner en contained
 et vérifie que le médecin est correctement extrait et associé.
 """
 import json
-from datetime import datetime
-from sqlmodel import Session, select
+from sqlmodel import select
 from app.db import session_factory
-from app.models import Patient, Dossier, Mouvement
-from app.models_structure import EntiteJuridique
+from app.models import Patient, Dossier
 from app.models_practitioners import MedecinResponsable
 from app.converters.fhir_import_converter import FHIRToEncounterConverter
 
@@ -128,14 +126,14 @@ def main():
     
     try:
         mouvement = converter.convert_encounter(encounter)
-        print(f"\n✅ Encounter importé avec succès!")
+        print("\n✅ Encounter importé avec succès!")
         print(f"   Mouvement créé: id={mouvement.id}, type={mouvement.type}")
         
         # Vérifier le médecin
         if mouvement.medecin_responsable_id:
             medecin = session.get(MedecinResponsable, mouvement.medecin_responsable_id)
             if medecin:
-                print(f"\n✅ Médecin responsable assigné au mouvement:")
+                print("\n✅ Médecin responsable assigné au mouvement:")
                 print(f"   - Nom: {medecin.get_full_name()}")
                 print(f"   - Identifiant: {medecin.get_identifier()}")
                 print(f"   - RPPS: {medecin.rpps}")

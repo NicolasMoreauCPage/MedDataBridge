@@ -10,7 +10,7 @@ Couvre la gestion des namespaces d'identifiants :
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
-from app.models_structure import GHTContext, IdentifierNamespace, EntiteJuridique
+from app.models_structure import GHTContext, IdentifierNamespace
 from app.routers.ght.namespaces import validate_and_extract_oid
 
 # Ces deux tests passent à 100% en isolation (`pytest tests/unit/test_namespaces_router.py`)

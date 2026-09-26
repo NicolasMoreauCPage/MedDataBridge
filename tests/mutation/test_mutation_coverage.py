@@ -6,7 +6,6 @@ Utilise mutmut pour introduire des mutations et vérifier la détection
 
 import pytest
 import subprocess
-import os
 from pathlib import Path
 
 # Vérifier si mutmut est disponible

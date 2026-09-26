@@ -9,9 +9,7 @@ Ces tests couvrent :
 - Relations entre modèles
 """
 
-import pytest
 from datetime import date, datetime
-from typing import Optional
 
 from app.models import (
     Sequence,

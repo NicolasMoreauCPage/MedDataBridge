@@ -11,7 +11,7 @@ Notes d'implémentation
 - Les fonctions `get_active_*_context` lisent l'identifiant en session puis
     recharge l'entité depuis la base pour disposer d'un objet complet.
 - Le middleware ajoute ces objets sur `request.state` avant d'appeler la suite.
-- En mode tests (env TESTING=1), aucune redirection n'est déclenchée ici pour ne
+- En mode test, aucune redirection n'est déclenchée ici pour ne
     pas perturber la navigation des tests UI. L'application peut afficher une
     bannière invitant l'utilisateur à choisir un contexte.
 """
@@ -56,13 +56,11 @@ async def get_active_ght_context(request: Request) -> Optional[GHTContext]:
                 if debug_enabled:
                     logger.debug("[get_active_ght_context] Loaded context: %s", getattr(ctx, 'name', None))
                 return ctx
-        # Solution de repli for tests: if the signed session cookie isn't parsed but
-        # tests have set a simple cookie 'medbridge_test' and/or a JSON
-        # 'medbridge_test_data' payload, read those and attempt to resolve
-        # the context from DB. This helps headless browsers where signed
-        # session cookies may not be parsed consistently.
+        # Test-only fallback for headless browser fixtures whose signed session
+        # cookie is not available. These client-controlled cookies must never
+        # influence a production request context.
         try:
-            if not context_id:
+            if not context_id and request.app.state.settings.testing:
                 # First try a compact JSON payload cookie (percent-encoded or raw)
                 raw = request.cookies.get("medbridge_test_data")
                 if raw:

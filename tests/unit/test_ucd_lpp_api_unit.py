@@ -54,7 +54,6 @@ class TestUCDAPI:
             "code_ucd": "1234567890123",  # Code CIP-13 valide (13 chiffres)
             "denomination_libelle": "Test UCD",
             "execute_date": "2025-12-21T10:00:00",
-            "prestataire_id": 1,
             "quantite": 1,
             "montant_unitaire_facture_ttc": 100.0,
             "commentaire": "Test"
@@ -98,7 +97,6 @@ class TestUCDAPI:
             code_ucd="1234567890123",
             denomination_libelle="Test UCD",
             execute_date=datetime.utcnow(),
-            prestataire_id=1,
             quantite=1,
             montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
@@ -145,7 +143,6 @@ class TestUCDAPI:
             code_ucd="1234567890123",
             denomination_libelle="Test UCD",
             execute_date=datetime.utcnow(),
-            prestataire_id=1,
             quantite=1,
             montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
@@ -197,7 +194,6 @@ class TestUCDAPI:
             code_ucd="1234567890123",
             denomination_libelle="Test UCD",
             execute_date=datetime.utcnow(),
-            prestataire_id=1,
             quantite=1,
             montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
@@ -242,7 +238,6 @@ class TestUCDAPI:
             code_ucd="1234567890123",
             denomination_libelle="Test UCD",
             execute_date=datetime.utcnow(),
-            prestataire_id=1,
             quantite=1,
             montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
@@ -290,7 +285,6 @@ class TestLPPAPI:
             "code_lpp": "1234567890123",  # Code LPP-13 valide (13 chiffres)
             "denomination_libelle": "Test LPP",
             "execute_date": "2025-12-21T10:00:00",
-            "prestataire_id": 1,
             "quantite": 1,
             "montant_unitaire_facture_ttc": 100.0,
             "commentaire": "Test"
@@ -334,7 +328,6 @@ class TestLPPAPI:
             code_lpp="1234567890123",
             denomination_libelle="Test LPP",
             execute_date=datetime.utcnow(),
-            prestataire_id=1,
             quantite=1,
             montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
@@ -380,7 +373,6 @@ class TestLPPAPI:
             code_lpp="1234567890123",
             denomination_libelle="Test LPP",
             execute_date=datetime.utcnow(),
-            prestataire_id=1,
             quantite=1,
             montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
@@ -430,7 +422,6 @@ class TestLPPAPI:
             code_lpp="1234567890123",
             denomination_libelle="Test LPP",
             execute_date=datetime.utcnow(),
-            prestataire_id=1,
             quantite=1,
             montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
@@ -475,7 +466,6 @@ class TestLPPAPI:
             code_lpp="1234567890123",
             denomination_libelle="Test LPP",
             execute_date=datetime.utcnow(),
-            prestataire_id=1,
             quantite=1,
             montant_unitaire_facture_ttc=100.0,
             commentaire="Test"

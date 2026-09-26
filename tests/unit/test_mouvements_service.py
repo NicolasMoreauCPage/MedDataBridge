@@ -4,7 +4,7 @@ Tests unitaires pour les services mouvements (sans TestClient)
 
 from datetime import datetime
 from sqlmodel import Session
-from app.models import Venue, Dossier
+from app.models import Dossier, Patient, Venue
 from app.services.mouvements_service import MouvementCreateSchema, create_mouvement
 
 
@@ -14,8 +14,11 @@ class TestMouvementsService:
     def test_create_mouvement_success(self, session: Session):
         """Test création mouvement réussie"""
         # Créer des données de test
+        patient = Patient(family="Mouvement", given="Test")
+        session.add(patient)
+        session.flush()
         dossier = Dossier(
-            patient_id=1,
+            patient_id=patient.id,
             admit_time=datetime.now(),
             discharge_time=None
         )
@@ -50,8 +53,11 @@ class TestMouvementsService:
     def test_create_mouvement_minimal(self, session: Session):
         """Test création mouvement avec données minimales"""
         # Créer des données de test
+        patient = Patient(family="Mouvement", given="Minimal")
+        session.add(patient)
+        session.flush()
         dossier = Dossier(
-            patient_id=1,
+            patient_id=patient.id,
             admit_time=datetime.now()
         )
         session.add(dossier)

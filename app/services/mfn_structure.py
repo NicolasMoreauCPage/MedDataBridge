@@ -210,14 +210,13 @@ def process_mfn_message(message: str, session: Session, multi_pass: bool = True)
         multi_pass: Si True, fait plusieurs passes pour résoudre les dépendances parent-enfant
     """
     logger.debug("process_mfn_message called")
-    logger.info("[MFN-IMPORT] process_mfn_message called")
-    logger.debug(f"Message reçu : {message}")
+    logger.info("[MFN-IMPORT] processing message bytes=%s", len(message.encode("utf-8")))
     # Si le message contient \\, remplacer par \
     message = message.replace("\\\\", "\\")
     # Normaliser les séparateurs HL7 (souvent '\r') en '\n' puis splitter
     normalized = message.replace("\r", "\n")
     segments = [seg.strip().split("|") for seg in normalized.split("\n") if seg.strip()]
-    logger.debug(f"Segments : {segments}")
+    logger.debug("Parsed %s MFN segments", len(segments))
     
     if not segments:
         logger.error("Pas de segments dans le message")

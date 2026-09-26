@@ -36,12 +36,16 @@ def generate_pam_hl7(
     mrg_prior_identifiers: Optional[list] = None,
     mrg_prior_name: str | None = None,
 ) -> str:
-    logger.info(f"generate_pam_hl7 called with args: {locals()}")
     """Build a minimal HL7 PAM message for the given entity type.
 
     This function accepts either SQLModel instances or the snapshot dict produced
     by `_snapshot_entity`. It uses local accessors to read attributes safely.
     """
+    logger.debug(
+        "Generating PAM message entity_type=%s operation=%s",
+        entity_type,
+        operation,
+    )
 
     # Support snapshots (plain dicts) or model instances
     is_dict = isinstance(entity, dict)

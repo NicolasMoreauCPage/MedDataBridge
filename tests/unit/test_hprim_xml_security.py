@@ -1,4 +1,6 @@
 from app.services.hprim.hprim_validator import HprimValidator
+from app.services.hprim.hprim_xml import HprimXmlService
+import pytest
 
 
 def test_hprim_schema_guessing_rejects_doctype_with_external_entity():
@@ -15,3 +17,13 @@ def test_hprim_schema_guessing_keeps_accepting_regular_document():
         HprimValidator().guess_schema_name("<evenementsServeurActes />")
         == "evenements_serveur_actes"
     )
+
+
+def test_hprim_service_rejects_doctype_before_parsing_message():
+    xml = """<!DOCTYPE evenementsServeurActes [
+        <!ENTITY internal "value">
+    ]>
+    <evenementsServeurActes>&internal;</evenementsServeurActes>"""
+
+    with pytest.raises(ValueError, match="DOCTYPE XML interdite"):
+        HprimXmlService().parse_xml(xml)

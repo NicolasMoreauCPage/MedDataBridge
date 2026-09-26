@@ -18,6 +18,7 @@ from app.protocols.hprim.models import (
     HprimCivilite, HprimActeLPP, HprimActeUCD, HprimLPP, HprimUCD,
     HprimAcquittement, HprimReponse, HprimTypeActe
 )
+from app.utils.xml_security import parse_xml_without_dtd
 
 logger = logging.getLogger(__name__)
 
@@ -615,7 +616,7 @@ class HprimXmlService:
         """
         try:
             # Parser le XML
-            root = ET.fromstring(xml_string)
+            root = parse_xml_without_dtd(xml_string)
             # Les exports historiques HPRIM 1.x rencontrés en recette ne
             # déclarent pas systématiquement l'espace de noms HPRIM. Le
             # modèle de lecture interne, lui, utilise des recherches

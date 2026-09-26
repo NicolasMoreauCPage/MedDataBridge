@@ -215,12 +215,11 @@ async def generic_exception_handler(
 ) -> JSONResponse:
     """Handler pour toutes les autres exceptions."""
     logger.error(
-        f"Unexpected error: {str(exc)}",
+        "Unexpected error",
         error_type=type(exc).__name__,
         path=request.url.path,
         method=request.method,
         correlation_id=_correlation_id(request),
-        exc_info=True
     )
     
     return _error_response(

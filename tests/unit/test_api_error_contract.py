@@ -26,7 +26,7 @@ def _client() -> TestClient:
 
     @app.get("/crash")
     def unexpected_error():
-        raise RuntimeError("unexpected test failure")
+        raise RuntimeError("PATIENT-SECRET-MARKER")
 
     return TestClient(app)
 
@@ -69,7 +69,7 @@ def test_business_errors_keep_the_same_contract():
     assert response.json()["detail"] == "Patient avec l'ID 42 non trouvé"
 
 
-def test_unexpected_errors_keep_the_same_contract_and_correlation():
+def test_unexpected_errors_keep_the_same_contract_and_correlation(caplog):
     correlation_id = "unexpected-error-42"
     with TestClient(_client().app, raise_server_exceptions=False) as client:
         response = client.get("/crash", headers={"X-Correlation-ID": correlation_id})
@@ -84,3 +84,4 @@ def test_unexpected_errors_keep_the_same_contract_and_correlation():
         "correlation_id": correlation_id,
         "type": "InternalServerError",
     }
+    assert "PATIENT-SECRET-MARKER" not in caplog.text

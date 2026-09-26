@@ -17,7 +17,7 @@ pytest-playwright>=0.4.0
 
 # UI/Forms
 python-slugify==8.0.1  # Pour les URLs propres
-python-jose[cryptography]==3.3.0  # Pour le chiffrement des tokens
+python-jose[cryptography]==3.5.0  # Pour le chiffrement des tokens
 itsdangerous>=2.1.0  # Pour les sessions sécurisées
 
 # FastAPI standard extras

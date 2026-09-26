@@ -87,7 +87,6 @@ class StructuredLogger:
                 operation_id=operation_id,
                 duration_seconds=duration,
                 status="error",
-                error=str(e),
                 error_type=type(e).__name__,
                 **kwargs
             )

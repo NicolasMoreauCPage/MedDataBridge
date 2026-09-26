@@ -1,16 +1,19 @@
 import pytest
 from datetime import datetime
 from sqlmodel import Session
-from app.models import Dossier, DossierType, Venue, Mouvement
+from app.models import Dossier, DossierType, Mouvement, Patient, Venue
 from app.services import dossier_service
 from app.utils.dossier_validators import validate_dossier_type_change
 
 @pytest.fixture
 def dossier(session: Session):
     """Crée un dossier de test"""
+    patient = Patient(family="Patient", given="Dossier type")
+    session.add(patient)
+    session.flush()
     dossier = Dossier(
         dossier_seq=get_next_seq(session, "dossier"),
-        patient_id=1,
+        patient_id=patient.id,
         uf_responsabilite="TEST",
         admit_time=datetime.now(),
         dossier_type=DossierType.HOSPITALISE

@@ -17,6 +17,7 @@ from app.dependencies.request_data import read_body
 from app.models_structure import GHTContext, IdentifierNamespace
 from app.models import Dossier
 from app.utils.flash import flash
+from app.services.ght_clone import clone_ght_context
 from .helpers import get_context_or_404, get_ej_or_404
 
 logger = logging.getLogger(__name__)
@@ -262,6 +263,43 @@ def update_ght_context(
         return {"ok": True, "id": context.id, "redirect": "/admin/ght"}
 
     return RedirectResponse("/admin/ght", status_code=303)
+
+
+@router.post("/{context_id}/clone")
+def clone_ght_context_route(
+    request: Request,
+    context_id: int,
+    new_name: str = Form(...),
+    new_code: str = Form(...),
+    connected_software_url: str = Form(...),
+    session: Session = Depends(get_session),
+):
+    """Clone un GHT complet vers une nouvelle instance du logiciel connecté."""
+    source = get_context_or_404(session, context_id)
+    try:
+        result = clone_ght_context(
+            session,
+            source,
+            new_name=new_name,
+            new_code=new_code,
+            connected_software_url=connected_software_url,
+        )
+        session.commit()
+        flash(
+            request,
+            f'GHT "{result.context.name}" cloné : {result.entity_count} EJ et '
+            f'{result.endpoint_count} endpoint(s) configuré(s) vers {result.context.fhir_server_url}.',
+            "success",
+        )
+        return RedirectResponse(f"/admin/ght/{result.context.id}", status_code=303)
+    except ValueError as exc:
+        session.rollback()
+        flash(request, str(exc), "error")
+    except Exception:
+        session.rollback()
+        logger.exception("Échec du clonage du GHT %s", context_id)
+        flash(request, "Le clonage du GHT a échoué ; aucune donnée n'a été créée.", "error")
+    return RedirectResponse(f"/admin/ght/{context_id}", status_code=303)
 
 
 @router.get("/{context_id}")

@@ -42,6 +42,11 @@
                         </svg>
                         Modifier
                     </a>
+                    <button type="button" id="clone-ght-button"
+                            data-context-name="{{ context.name }}" data-context-code="{{ context.code }}"
+                            class="inline-flex items-center px-4 py-2 text-sm text-purple-600 dark:text-purple-400 hover:text-purple-800">
+                        Cloner l'environnement
+                    </button>
                 </div>
             </div>
         </div>
@@ -177,6 +182,39 @@
     </div>
 </div>
 
+<div id="cloneGhtModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="clone-ght-modal-title">
+    <div class="modal-box max-w-xl">
+        <h3 id="clone-ght-modal-title" class="font-bold text-lg">Cloner cet environnement GHT</h3>
+        <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            La structure et les endpoints sont recopiés. Les destinations FHIR seront dirigées vers l'URL de la nouvelle version du logiciel connecté.
+        </p>
+        <form id="cloneGhtForm" method="post" action="/admin/ght/{{ context.id }}/clone" class="py-4 space-y-4">
+            <div class="form-control">
+                <label for="clone_ght_source" class="label"><span class="label-text">GHT d'origine</span></label>
+                <input type="text" id="clone_ght_source" readonly class="input input-bordered input-disabled">
+            </div>
+            <div class="form-control">
+                <label for="clone_ght_name" class="label"><span class="label-text">Nom du nouveau GHT <span class="text-red-500">*</span></span></label>
+                <input type="text" id="clone_ght_name" name="new_name" required class="input input-bordered focus:input-primary">
+            </div>
+            <div class="form-control">
+                <label for="clone_ght_code" class="label"><span class="label-text">Code du nouveau GHT <span class="text-red-500">*</span></span></label>
+                <input type="text" id="clone_ght_code" name="new_code" required class="input input-bordered focus:input-primary">
+            </div>
+            <div class="form-control">
+                <label for="clone_ght_connected_url" class="label"><span class="label-text">URL de la nouvelle version <span class="text-red-500">*</span></span></label>
+                <input type="url" id="clone_ght_connected_url" name="connected_software_url" required
+                       placeholder="https://medbridge-recette.exemple.fr/fhir" class="input input-bordered focus:input-primary">
+                <label class="label"><span class="label-text-alt text-slate-500">Cette URL devient la base des endpoints et configurations FHIR clonés.</span></label>
+            </div>
+        </form>
+        <div class="modal-action">
+            <button type="button" data-close-ght-clone class="btn btn-hover-lift">Annuler</button>
+            <button type="submit" form="cloneGhtForm" class="btn btn-primary btn-hover-lift">Cloner l'environnement</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal pour cloner une EJ (DaisyUI) -->
 <div id="cloneModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="clone-modal-title" data-clone-base="/admin/ght/{{ context.id }}/ej">
     <div class="modal-box">
@@ -216,4 +254,5 @@
 </div>
 
 <script defer src="{{ url_for('static', path='/js/ght-detail-workspace.js') }}"></script>
+<script defer src="{{ url_for('static', path='/js/ght-context-clone.js') }}"></script>
 {% endblock %}

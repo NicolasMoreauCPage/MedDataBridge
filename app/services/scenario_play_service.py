@@ -35,6 +35,7 @@ from app.services.qualification_engine import validate_preconditions
 from app.services.scenario_target_profile_service import resolve_target_context
 from app.services.scenario_output_validation import validate_compiled_payload
 from app.utils.seq_generator import generate_venue_seq
+from app.utils.xml_security import parse_xml_without_dtd
 
 
 class ScenarioPlayError(ValueError):
@@ -672,7 +673,7 @@ def _adapt_hprim_xml(payload: str, tokens: dict[str, str]) -> str:
     HPRIM patient/venue/message nodes emitted by this application.
     """
     try:
-        root = ET.fromstring(payload)
+        root = parse_xml_without_dtd(payload)
     except ET.ParseError as exc:
         raise ScenarioPlayError(f"Payload HPRIM XML invalide: {exc}") from exc
     for element in root.iter():

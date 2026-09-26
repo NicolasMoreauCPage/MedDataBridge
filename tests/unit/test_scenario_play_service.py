@@ -327,6 +327,14 @@ def test_hprim_ngap_generic_legacy_act_token_is_made_valid_for_ngap():
     assert "<lettreCle>AMK</lettreCle>" in compiled
 
 
+def test_hprim_adaptation_rejects_doctype():
+    with pytest.raises(ScenarioPlayError, match="DOCTYPE XML interdite"):
+        _adapt_hprim_xml(
+            "<!DOCTYPE message [<!ENTITY internal 'value'>]><message>&internal;</message>",
+            {},
+        )
+
+
 def test_play_rejects_a_selection_without_compatible_endpoint(session):
     scenario = _scenario(session)
     endpoint = SystemEndpoint(name="MLLP uniquement", kind="MLLP", role="sender", host="localhost", port=2575)

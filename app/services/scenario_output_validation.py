@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 import json
-import re
 from typing import Any
 from xml.etree import ElementTree as ET
 
@@ -17,6 +16,7 @@ from app.services.fhir_profile_validator import FHIRProfileValidator
 from app.services.hprim.hprim_validator import HprimValidator
 from app.services.pam_validation import validate_pam
 from app.services.siu import validate_siu
+from app.utils.xml_security import parse_xml_without_dtd
 from app.validators.hl7_validators import MFNValidator
 
 
@@ -33,20 +33,6 @@ class OutputValidationReport:
 
     def to_dict(self) -> dict[str, Any]:
         return {**asdict(self), "status": self.status}
-
-
-_DOCTYPE_DECLARATION = re.compile(r"<!DOCTYPE\b", flags=re.IGNORECASE)
-
-
-def _parse_xml_without_dtd(payload: str) -> ET.Element:
-    """Parse un payload XML de scénario sans accepter de DTD.
-
-    Les DTD ne sont pas requises pour les formats pris en charge et peuvent
-    introduire des entités externes ou des expansions coûteuses.
-    """
-    if _DOCTYPE_DECLARATION.search(payload):
-        raise ET.ParseError("DOCTYPE XML interdite")
-    return ET.fromstring(payload)
 
 
 def _issue_text(issue: Any) -> str:
@@ -90,7 +76,7 @@ def _hl7_report(payload: str) -> OutputValidationReport:
 
 def _xml_report(payload: str) -> OutputValidationReport:
     try:
-        _parse_xml_without_dtd(payload)
+        parse_xml_without_dtd(payload)
     except ET.ParseError as exc:
         return OutputValidationReport(False, "XML", [f"XML invalide: {exc}"], [])
     validator = HprimValidator()

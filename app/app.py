@@ -290,7 +290,12 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         logging.getLogger(__name__).warning(
             "SECRET_KEY non défini ou par défaut - utilisation d'un secret éphémère pour cette instance"
         )
-    app.add_middleware(SessionMiddleware, secret_key=session_secret)
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=session_secret,
+        same_site="lax",
+        https_only=app_settings.security_enabled,
+    )
 
     # exposer le manager aux routeurs
     app.state.mllp_manager = mllp_manager

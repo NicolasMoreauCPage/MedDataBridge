@@ -11,6 +11,14 @@ from fastapi.testclient import TestClient
 from config.settings import ConfigurationError, Settings
 
 
+def _session_middleware_options(application):
+    return next(
+        middleware.kwargs
+        for middleware in application.user_middleware
+        if middleware.cls.__name__ == "SessionMiddleware"
+    )
+
+
 def test_settings_parse_typed_environment_values():
     settings = Settings.from_environment(
         {
@@ -61,6 +69,9 @@ def test_create_app_only_mounts_login_routes_when_security_is_enabled():
     assert "/auth/login" in secured_paths
     assert "/api/admin/users" not in local_paths
     assert "/api/admin/users" in secured_paths
+
+    assert _session_middleware_options(local_app)["https_only"] is False
+    assert _session_middleware_options(secured_app)["https_only"] is True
 
 
 @pytest.mark.parametrize(

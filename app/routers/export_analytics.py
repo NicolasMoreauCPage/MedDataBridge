@@ -3,6 +3,7 @@ Export de rapports analytics (Excel, PDF, CSV) pour le Mode Gestionnaire
 """
 from fastapi import APIRouter, Depends, Query, HTTPException
 from fastapi.responses import StreamingResponse
+from sqlalchemy import func
 from sqlmodel import Session, select
 from datetime import datetime, timedelta
 from typing import Literal
@@ -30,9 +31,16 @@ except ModuleNotFoundError:
     SimpleDocTemplate = None
 
 from app.dependencies.db_deps import get_session
+from app.models import Dossier
 from app.models_structure import Lit, Service, UniteFonctionnelle, Chambre, UniteHebergement, Pole
 from app.services.structure_validation import get_occupied_lit_ids
-from app.routers.analytics import _lits_query_for_eg, _dossiers_in_scope, _compute_dms, _PERIOD_DAYS
+from app.routers.analytics import (
+    _PERIOD_DAYS,
+    _average_stay_days,
+    _count_occupied_beds,
+    _dossier_scope_filters,
+    _lit_ids_query_for_eg,
+)
 
 
 router = APIRouter(prefix="/api/analytics/export", tags=["Analytics Export"])
@@ -40,20 +48,18 @@ router = APIRouter(prefix="/api/analytics/export", tags=["Analytics Export"])
 
 def get_kpi_data(session: Session, eg_id: int, period: str):
     """Récupère les données KPIs pour export, à partir des données réelles (même logique que analytics.py)."""
-    lits = session.exec(_lits_query_for_eg(eg_id)).all()
-    lit_ids = {lit.id for lit in lits}
-    nb_lits_total = len(lit_ids)
-
-    occupied_lit_ids = get_occupied_lit_ids(session)
-    nb_lits_occupes = len(lit_ids & occupied_lit_ids)
+    lit_ids_query = _lit_ids_query_for_eg(eg_id)
+    nb_lits_total = int(session.exec(select(func.count()).select_from(lit_ids_query.subquery())).one() or 0)
+    nb_lits_occupes = _count_occupied_beds(session, lit_ids_query)
     taux_occupation = (nb_lits_occupes / nb_lits_total * 100) if nb_lits_total > 0 else 0
 
     days = _PERIOD_DAYS.get(period, 30)
     period_start = datetime.now() - timedelta(days=days)
-    dossiers_in_scope = _dossiers_in_scope(session, lit_ids)
-    discharged = [d for d in dossiers_in_scope if d.discharge_time and d.discharge_time >= period_start]
-    dms = _compute_dms(discharged)
-    admissions = len([d for d in dossiers_in_scope if d.admit_time and d.admit_time >= period_start])
+    scope_filters = _dossier_scope_filters(lit_ids_query)
+    dms = _average_stay_days(session, scope_filters, period_start)
+    admissions = int(session.exec(
+        select(func.count()).select_from(Dossier).where(*scope_filters, Dossier.admit_time >= period_start)
+    ).one() or 0)
     taux_rotation = (admissions / nb_lits_total * 100) if nb_lits_total > 0 else 0
 
     return {

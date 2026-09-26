@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Request, Form, Query, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from typing import Optional
 import os
@@ -8,10 +7,9 @@ from app.db import get_session
 from app.models import Dossier, Patient
 from sqlalchemy import func
 from fastapi import HTTPException, status
-from app.auth import decode_token
+from app.templates import templates
 
 router = APIRouter(prefix="/cotation-modern", tags=["cotation_selector"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/select", response_class=HTMLResponse)
@@ -43,6 +41,7 @@ def search_dossiers(
     # If PUBLIC_SEARCH is disabled, enforce authentication
     public_search = os.getenv("PUBLIC_SEARCH", "true").lower() in ("1", "true", "yes")
     if not public_search:
+        from app.auth import decode_token
         # enforce auth manually: expect Authorization: Bearer <token>
         auth = request.headers.get("authorization") or request.headers.get("Authorization")
         if not auth or not auth.lower().startswith("bearer "):

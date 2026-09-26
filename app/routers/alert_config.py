@@ -3,20 +3,19 @@ Router pour la configuration des seuils d'alertes (Mode Gestionnaire)
 """
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from typing import List, Optional
 from datetime import datetime
 
 from app.db import get_session
 from app.models.analytics import AlertRule, AlertType, AlertSeverity
+from app.templates import templates
 
 # Router API
 router = APIRouter(prefix="/api/alert-config", tags=["Alert Configuration"])
 
 # Router UI
 ui_router = APIRouter(prefix="/structure/alert-config", tags=["Alert Configuration UI"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 # ========== CRUD API Endpoints ==========

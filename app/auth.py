@@ -43,6 +43,12 @@ def _resolve_jwt_secret(runtime_settings=None) -> str:
     if secret and secret not in insecure_defaults:
         return secret
 
+    # Le mode LAN ne monte ni les routes d'authentification ni la frontière
+    # JWT. Des routeurs partagent néanmoins les types/dépendances auth au
+    # chargement : leur import ne doit pas empêcher le démarrage local ouvert.
+    if not active_settings.security_enabled:
+        return "local-lan-jwt-secret-not-for-production"
+
     testing_env = os.getenv("TESTING", "false").strip().lower() in ("1", "true", "yes", "on")
     debug_env = os.getenv("DEBUG", "false").strip().lower() in ("1", "true", "yes", "on")
     running_under_pytest = "pytest" in sys.modules

@@ -24,16 +24,16 @@ cd MedData_Bridge
 cp .env.example .env
 ```
 
-Éditer ensuite `.env`. Pour une exécution hors test, renseigner au minimum des
-valeurs propres à l'environnement pour `SECRET_KEY`, `JWT_SECRET_KEY` et
-`SESSION_SECRET_KEY`. Les variables de connexion de la pile Compose sont
-fournies par `docker/docker-compose.yml` : PostgreSQL et Redis utilisent le
-réseau interne Docker.
+Éditer ensuite `.env`. Pour le profil LAN, renseigner au minimum
+`POSTGRES_PASSWORD` avec une valeur propre à l'environnement. Les clés JWT ne
+sont pas requises tant que la sécurité reste désactivée. PostgreSQL et Redis
+utilisent le réseau interne Docker ; Redis n'est volontairement pas publié sur
+le poste hôte.
 
 Par défaut, `SECURITY_ENABLED=false` est adapté à une utilisation strictement
 LAN : aucun login ni route d'administration JWT ne sont exposés. Avant toute
-exposition hors LAN, définir `SECURITY_ENABLED=true` et des valeurs fortes,
-distinctes, pour les clés `SECRET_KEY` et `JWT_SECRET_KEY`.
+exposition hors LAN, utiliser obligatoirement le profil `exposed` : il impose
+les secrets, un compte administrateur local et l'authentification globale.
 
 Valider la configuration avant de créer des ressources :
 
@@ -42,8 +42,25 @@ docker compose -f docker/docker-compose.yml config --quiet
 ```
 
 Cette commande fonctionne également sans `.env` dans un checkout propre ; le
-conteneur applicatif, lui, nécessite les clés de runtime pour démarrer hors
-mode développement.
+conteneur applicatif, lui, nécessite les secrets du profil `exposed` pour
+démarrer hors LAN.
+
+### Profil exposé (hors LAN)
+
+Le proxy TLS et les certificats restent à configurer par l'opérateur. Les
+variables suivantes doivent être longues, aléatoires et distinctes :
+
+```bash
+export SECRET_KEY="..."
+export JWT_SECRET_KEY="..."
+export BOOTSTRAP_ADMIN_USERNAME="admin"
+export BOOTSTRAP_ADMIN_PASSWORD="..."
+export POSTGRES_PASSWORD="..."
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.exposed.yml --profile nginx up -d --build --wait
+```
+
+Le second fichier Compose échoue volontairement si une variable obligatoire
+manque. Ne pas utiliser le profil LAN pour une interface exposée.
 
 ## Démarrer et vérifier
 

@@ -9,7 +9,6 @@ from urllib.parse import parse_qsl
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 import os
-from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
 from app.db import get_session
@@ -18,11 +17,11 @@ from app.models_structure import GHTContext, IdentifierNamespace
 from app.models import Dossier
 from app.utils.flash import flash
 from app.services.ght_clone import clone_ght_context
+from app.templates import templates
 from .helpers import get_context_or_404, get_ej_or_404
 
 logger = logging.getLogger(__name__)
 
-templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(tags=["ght"])
 
 

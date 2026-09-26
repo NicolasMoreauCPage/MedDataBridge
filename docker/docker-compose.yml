@@ -7,9 +7,13 @@ services:
     ports:
       - "${MEDBRIDGE_PORT:-8000}:8000"
     environment:
-      ENVIRONMENT: production
-      DATABASE_URL: postgresql+psycopg://medbridge:password@postgres:5432/medbridge
+      ENVIRONMENT: lan
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-medbridge}:${POSTGRES_PASSWORD:-medbridge-lan-only}@postgres:5432/${POSTGRES_DB:-medbridge}
       REDIS_URL: redis://redis:6379
+      # Le LAN est le mode de départ voulu. Le fichier
+      # docker-compose.exposed.yml force l'authentification pour toute
+      # exposition hors de ce périmètre.
+      SECURITY_ENABLED: ${SECURITY_ENABLED:-false}
       # Docker Compose loads a root .env automatically when it exists. Empty
       # defaults deliberately keep `docker compose config` usable from a clean
       # checkout; the application then emits its normal startup diagnostic if
@@ -36,14 +40,14 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_DB=medbridge
-      - POSTGRES_USER=medbridge
-      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=${POSTGRES_DB:-medbridge}
+      - POSTGRES_USER=${POSTGRES_USER:-medbridge}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-medbridge-lan-only}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U medbridge"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-medbridge}"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -51,8 +55,6 @@ services:
   # Cache Redis
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     restart: unless-stopped
@@ -80,7 +82,7 @@ services:
 
   # Monitoring avec Prometheus (optionnel)
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.55.1
     ports:
       - "9090:9090"
     volumes:

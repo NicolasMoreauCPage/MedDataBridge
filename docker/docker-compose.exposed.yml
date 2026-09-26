@@ -1,0 +1,11 @@
+# Profil à superposer au Compose LAN pour une instance accessible hors du LAN.
+# Les variables sans valeur par défaut sont volontairement obligatoires.
+services:
+  medbridge:
+    environment:
+      ENVIRONMENT: exposed
+      SECURITY_ENABLED: "true"
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY est obligatoire hors LAN}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY est obligatoire hors LAN}
+      BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME:?BOOTSTRAP_ADMIN_USERNAME est obligatoire hors LAN}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?BOOTSTRAP_ADMIN_PASSWORD est obligatoire hors LAN}

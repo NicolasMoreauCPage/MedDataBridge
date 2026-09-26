@@ -4,7 +4,6 @@ Optimisé pour le workflow des professionnels du codage médical.
 """
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from typing import Any, Optional
 import logging
@@ -14,11 +13,11 @@ from app.db import get_session
 from app.models import Dossier, Patient, CCAMAct, NGAPAct, UCDAct, LPPAct
 from app.models.vocabulary import VocabularySystem, VocabularyValue
 from app.utils.booleans import as_bool
+from app.templates import templates
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/cotations", tags=["cotations-saisie"])
-templates = Jinja2Templates(directory="app/templates")
 
 COTATION_MODELS: dict[str, tuple[type, str]] = {
     "ccam": (CCAMAct, "ccam_act"),

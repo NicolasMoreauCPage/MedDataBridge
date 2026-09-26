@@ -1,6 +1,6 @@
 {
   "name": "meddata_bridge",
-  "version": "1.1.0",
+  "version": "2.0.2",
   "description": "Plateforme de qualification et de test d'interopérabilité HL7, IHE PAM, HPRIM et FHIR.",
   "private": true,
   "directories": {

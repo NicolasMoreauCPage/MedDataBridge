@@ -66,7 +66,7 @@ from app.routers import (
     endpoints, transport, transport_views, fhir_inbox, messages, interop,
     generate, structure, workflow, fhir_structure, vocabularies,
     health, scenarios, guide, docs, ihe, structure_select, validation, validation_rules,
-    documentation, conformity, fhir_export, fhir_import, metrics, auth, doc_wrapper,
+    documentation, conformity, fhir_export, fhir_import, metrics, doc_wrapper,
     interface_testing, test_scenario_generator, ui_test_scenarios, tasks,
     hprim_interventions, hprim_acquittements, hprim_management, ngap, cotations, cotations_saisie,
     admission_wizard, location_cartography, contacts
@@ -244,75 +244,9 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
 
     logger.info("\nFastAPI app initialization")
 
-    # Filtre Jinja2 global pour masquer None ou 'None' par '—'
-    def none_to_dash(value):
-        if value is None or value == "None":
-            return "—"
-        return value
-    
-    # Filtres Jinja2 pour un affichage de date/heure lisible (format français),
-    # au lieu du repr() brut Python (ex: "2026-01-28 15:03:05.118048").
-    def fr_date(value):
-        if value is None or value == "":
-            return "—"
-        if isinstance(value, str):
-            for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y%m%d"):
-                try:
-                    value = datetime.strptime(value, fmt)
-                    break
-                except ValueError:
-                    continue
-            else:
-                return value
-        try:
-            return value.strftime("%d/%m/%Y")
-        except (AttributeError, ValueError):
-            return value
-
-    def fr_datetime(value):
-        if value is None or value == "":
-            return "—"
-        if isinstance(value, str):
-            for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%Y%m%d%H%M%S", "%Y%m%d"):
-                try:
-                    value = datetime.strptime(value, fmt)
-                    break
-                except ValueError:
-                    continue
-            else:
-                return value
-        try:
-            return value.strftime("%d/%m/%Y %H:%M")
-        except (AttributeError, ValueError):
-            return value
-
-    # Filtre Jinja2 pour convertir les caractères de retour à la ligne en sauts de ligne visibles
-    def format_hl7_payload(value):
-        """Convertit les caractères \r, \n et \r\n en véritables sauts de ligne HTML"""
-        if not isinstance(value, str):
-            return value
-        # Remplacer \r\n par \n d'abord (pour éviter double conversion)
-        value = value.replace('\r\n', '\n')
-        # Remplacer \r seul par \n
-        value = value.replace('\r', '\n')
-        # Les sauts de ligne seront préservés par whitespace-pre-wrap en CSS
-        return value
-    
-    # Ajout des filtres au moteur de templates Jinja2
-    from fastapi.templating import Jinja2Templates
-    templates_dir = str(Path(__file__).parent / "templates")
-    templates = Jinja2Templates(directory=templates_dir)
-    templates.env.filters["none_to_dash"] = none_to_dash
-    templates.env.filters["format_hl7_payload"] = format_hl7_payload
-    templates.env.filters["fr_date"] = fr_date
-    templates.env.filters["fr_datetime"] = fr_datetime
-    from app.utils.safe_html import sanitize_icon_svg
-    templates.env.filters["sanitize_icon_svg"] = sanitize_icon_svg
-    # Également exposés comme globals pour pouvoir être passés en callable
-    # (ex: macros/ui.html::inheritance_field(..., formatter=fr_date)).
-    templates.env.globals["fr_date"] = fr_date
-    templates.env.globals["fr_datetime"] = fr_datetime
-    # Stocker dans app.state pour accès dans les routes si besoin
+    # Un environnement partagé évite qu'un routeur oublie les filtres requis
+    # par le layout ou les macros communes.
+    from app.templates import templates
     app.state.templates = templates
     # Store version from settings
     app.state.version = app_settings.app_version
@@ -792,6 +726,7 @@ def _register_application_routes(
     logger.info(" - Import examples router mounted at /import")
     
     if app_settings.security_enabled:
+        from app.routers import auth
         app.include_router(auth.router)
         logger.info(" - Authentication router mounted")
 
@@ -814,8 +749,7 @@ def _register_application_routes(
         from fastapi import Request
         from fastapi.responses import HTMLResponse
         from fastapi import APIRouter
-        from fastapi.templating import Jinja2Templates
-        templates = Jinja2Templates(directory="app/templates")
+        from app.templates import templates
         dashboard_router = APIRouter()
 
         @dashboard_router.get("/dashboard", response_class=HTMLResponse, tags=["Monitoring"])

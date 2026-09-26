@@ -10,7 +10,6 @@ from urllib.parse import quote_plus
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, func, or_, select
 
 from app.db import get_session
@@ -18,11 +17,11 @@ from app.models import CCAMAct, Dossier, LPPAct, NGAPAct, Patient, UCDAct
 from app.models.hprim_models import HprimMessage
 from app.services.hprim.hprim_xml import HprimXmlService
 from app.utils.booleans import as_bool
+from app.templates import templates
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/hprim-cotation", tags=["HPRIM Cotation"])
-templates = Jinja2Templates(directory="app/templates")
 
 VISIBLE_STATUSES = ("received", "validated", "stored", "stored_with_errors", "processed", "error")
 

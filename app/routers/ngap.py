@@ -7,38 +7,14 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Request, Depends, Form, HTTPException
-from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select, func
 
 from app.db import get_session
 from app.models import Dossier, NGAPAct
 from app.services.ngap_service import NGAPService, NGAPActCreate
+from app.templates import templates
 
 router = APIRouter(prefix="/ngap", tags=["NGAP Web"])
-templates = Jinja2Templates(directory="app/templates")
-
-
-def _fr_datetime(value):
-    """Même format que le filtre `fr_datetime` global (app/app.py) — dupliqué ici car ce
-    routeur utilise sa propre instance Jinja2Templates plutôt que celle partagée de l'app."""
-    if value is None or value == "":
-        return "—"
-    if isinstance(value, str):
-        for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%Y%m%d%H%M%S", "%Y%m%d"):
-            try:
-                value = datetime.strptime(value, fmt)
-                break
-            except ValueError:
-                continue
-        else:
-            return value
-    try:
-        return value.strftime("%d/%m/%Y %H:%M")
-    except (AttributeError, ValueError):
-        return value
-
-
-templates.env.filters["fr_datetime"] = _fr_datetime
 
 
 @router.get("/")

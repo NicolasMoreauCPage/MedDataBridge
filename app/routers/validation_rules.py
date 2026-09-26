@@ -2,15 +2,14 @@ import logging
 
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse, HTMLResponse
-from fastapi.templating import Jinja2Templates
 import json
 from pathlib import Path
+from app.templates import templates
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/validation-rules", tags=["Validation Rules"])
 ui_router = APIRouter(tags=["Validation Rules UI"])  # will mount at /validation/rules
-templates = Jinja2Templates(directory="app/templates")
 
 DATA_DIR = Path(__file__).parent.parent / "data"
 RULES_FILE = DATA_DIR / "pam_custom_rules.json"

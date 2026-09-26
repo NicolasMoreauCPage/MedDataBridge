@@ -107,6 +107,35 @@ def test_importing_application_in_testing_mode_does_not_create_a_database(tmp_pa
     assert not database_path.exists()
 
 
+def test_importing_application_in_lan_mode_does_not_require_a_jwt_secret(tmp_path):
+    """Le mode sans login doit respecter la procédure de démarrage locale."""
+    database_path = tmp_path / "lan-mode.db"
+    environment = {
+        **os.environ,
+        "TESTING": "0",
+        "DEBUG": "0",
+        "SECURITY_ENABLED": "false",
+        "SECRET_KEY": "",
+        "JWT_SECRET_KEY": "",
+        "DATABASE_URL": f"sqlite:///{database_path}",
+    }
+    repository_root = Path(__file__).resolve().parents[2]
+
+    result = subprocess.run(
+        [sys.executable, "-c", "import app.app; print('lan-imported')"],
+        cwd=repository_root,
+        env=environment,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "lan-imported" in result.stdout
+    assert not database_path.exists()
+
+
 def test_create_app_uses_injected_validated_settings():
     from app.app import create_app
 

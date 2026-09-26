@@ -4,18 +4,14 @@ Utilise l'API FHIR Structure existante (/fhir/Location)
 """
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-from pathlib import Path
 from sqlalchemy import func
 from sqlmodel import Session, select
 from app.db import get_session
 from app.models_structure import EntiteGeographique
+from app.templates import templates
 
 router = APIRouter()
 
-# Templates directory
-BASE_DIR = Path(__file__).resolve().parent.parent
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 @router.get("/structure/search", response_class=HTMLResponse)
 def structure_search_interface(

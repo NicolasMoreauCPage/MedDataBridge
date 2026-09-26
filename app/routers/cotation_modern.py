@@ -4,13 +4,12 @@ Intégration HPRIM XML pour codage CCAM, NGAP, UCD, LPP.
 """
 from fastapi import APIRouter, Request, Depends, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlmodel import Session
 from app.db import get_session
 from app.models import Dossier
+from app.templates import templates
 
 router = APIRouter(tags=["Cotation Modern"])
-templates = Jinja2Templates(directory="app/templates")
 
 @router.get("/", response_class=HTMLResponse)
 def cotation_modern_home(

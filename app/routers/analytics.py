@@ -3,7 +3,7 @@ Router pour le module Analytics (Mode Gestionnaire)
 """
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from sqlalchemy import func
 from sqlmodel import Session, select
 from typing import Optional
 from datetime import datetime, timedelta
@@ -28,6 +28,7 @@ from app.models.analytics import (
     AlertSeverity,
 )
 from app.services.structure_validation import get_occupied_lit_ids
+from app.templates import templates
 
 _PERIOD_DAYS = {"7d": 7, "30d": 30, "1y": 365}
 
@@ -48,28 +49,71 @@ def _lits_query_for_eg(eg_id: Optional[int]):
     return query
 
 
-def _dossiers_in_scope(session: Session, lit_ids: Optional[set]):
-    """Dossiers dont au moins un Venue est rattaché à un lit du périmètre (ou tous si pas de périmètre)."""
-    query = select(Dossier)
-    if lit_ids is not None:
-        query = query.join(Venue, Venue.dossier_id == Dossier.id).where(Venue.lit_id.in_(lit_ids)).distinct()
-    return session.exec(query).all()
+def _lit_ids_query_for_eg(eg_id: Optional[int]):
+    """Sous-requête SQL des lits du périmètre, sans instancier les lits."""
+    query = select(Lit.id)
+    if eg_id:
+        query = (
+            query
+            .join(Chambre, Chambre.id == Lit.chambre_id)
+            .join(UniteHebergement, UniteHebergement.id == Chambre.unite_hebergement_id)
+            .join(UniteFonctionnelle, UniteFonctionnelle.id == UniteHebergement.unite_fonctionnelle_id)
+            .join(Service, Service.id == UniteFonctionnelle.service_id)
+            .join(Pole, Pole.id == Service.pole_id)
+            .where(Pole.entite_geo_id == eg_id)
+        )
+    return query
 
 
-def _compute_dms(dossiers: list) -> float:
-    """Durée Moyenne de Séjour (jours) sur les dossiers déjà sortis."""
-    durations = [
-        (d.discharge_time - d.admit_time).total_seconds() / 86400
-        for d in dossiers
-        if d.discharge_time and d.admit_time
+def _dossier_scope_filters(lit_ids_query):
+    """Filtre les dossiers par leurs venues sans charger les dossiers en mémoire."""
+    if lit_ids_query is None:
+        return []
+    venue_dossier_ids = select(Venue.dossier_id).where(Venue.lit_id.in_(lit_ids_query))
+    return [Dossier.id.in_(venue_dossier_ids)]
+
+
+def _count_occupied_beds(session: Session, lit_ids_query) -> int:
+    """Compte les lits occupés courants dans le périmètre directement en SQL."""
+    latest_start = (
+        select(Venue.dossier_id, func.max(Venue.start_time).label("max_start"))
+        .group_by(Venue.dossier_id)
+        .subquery()
+    )
+    statement = (
+        select(func.count(func.distinct(Venue.lit_id)))
+        .join(
+            latest_start,
+            (Venue.dossier_id == latest_start.c.dossier_id)
+            & (Venue.start_time == latest_start.c.max_start),
+        )
+        .join(Dossier, Dossier.id == Venue.dossier_id)
+        .where(Dossier.discharge_time.is_(None), Venue.lit_id.in_(lit_ids_query))
+    )
+    return int(session.exec(statement).one() or 0)
+
+
+def _average_stay_days(session: Session, filters: list, start: datetime, end: Optional[datetime] = None) -> float:
+    """Calcule la DMS par agrégat SQL, compatible SQLite et PostgreSQL."""
+    if session.get_bind().dialect.name == "sqlite":
+        duration_days = func.julianday(Dossier.discharge_time) - func.julianday(Dossier.admit_time)
+    else:
+        duration_days = func.extract("epoch", Dossier.discharge_time - Dossier.admit_time) / 86400.0
+    conditions = [
+        *filters,
+        Dossier.admit_time.is_not(None),
+        Dossier.discharge_time.is_not(None),
+        Dossier.discharge_time >= start,
     ]
-    return sum(durations) / len(durations) if durations else 0.0
+    if end is not None:
+        conditions.append(Dossier.discharge_time < end)
+    value = session.exec(select(func.avg(duration_days)).where(*conditions)).one()
+    return float(value or 0.0)
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
 # Router pour les pages HTML (sans prefix /api)
 ui_router = APIRouter(prefix="/structure", tags=["analytics-ui"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 @ui_router.get("/analytics", response_class=HTMLResponse)
@@ -99,8 +143,8 @@ def get_kpis(
     Calcule les KPIs principaux pour le mode gestionnaire, à partir des données réelles
     d'admission/sortie (Dossier/Venue) plutôt que d'une simulation aléatoire.
     """
-    lits = session.exec(_lits_query_for_eg(eg_id)).all()
-    total_beds = len(lits)
+    lit_ids_query = _lit_ids_query_for_eg(eg_id)
+    total_beds = int(session.exec(select(func.count()).select_from(lit_ids_query.subquery())).one() or 0)
 
     if total_beds == 0:
         return KpiResponse(
@@ -113,9 +157,7 @@ def get_kpis(
             period=period
         )
 
-    lit_ids = {lit.id for lit in lits}
-    occupied_lit_ids = get_occupied_lit_ids(session)
-    occupied_beds = len(lit_ids & occupied_lit_ids)
+    occupied_beds = _count_occupied_beds(session, lit_ids_query)
     available_beds = total_beds - occupied_beds
     occupation_rate = (occupied_beds / total_beds) * 100
 
@@ -124,22 +166,29 @@ def get_kpis(
     period_start = now - timedelta(days=days)
     previous_period_start = now - timedelta(days=2 * days)
 
-    dossiers_in_scope = _dossiers_in_scope(session, lit_ids if eg_id else None)
-
-    current_discharged = [d for d in dossiers_in_scope if d.discharge_time and d.discharge_time >= period_start]
-    previous_discharged = [
-        d for d in dossiers_in_scope
-        if d.discharge_time and previous_period_start <= d.discharge_time < period_start
-    ]
-    dms = _compute_dms(current_discharged)
-    previous_dms = _compute_dms(previous_discharged)
+    scope_filters = _dossier_scope_filters(lit_ids_query if eg_id else None)
+    dms = _average_stay_days(session, scope_filters, period_start)
+    previous_discharged = int(session.exec(
+        select(func.count()).select_from(Dossier).where(
+            *scope_filters,
+            Dossier.discharge_time.is_not(None),
+            Dossier.discharge_time >= previous_period_start,
+            Dossier.discharge_time < period_start,
+        )
+    ).one() or 0)
+    previous_dms = _average_stay_days(session, scope_filters, previous_period_start, period_start)
     dms_trend = round(dms - previous_dms, 1) if previous_discharged else None
 
-    current_admissions = len([d for d in dossiers_in_scope if d.admit_time and d.admit_time >= period_start])
-    previous_admissions = len([
-        d for d in dossiers_in_scope
-        if d.admit_time and previous_period_start <= d.admit_time < period_start
-    ])
+    current_admissions = int(session.exec(
+        select(func.count()).select_from(Dossier).where(*scope_filters, Dossier.admit_time >= period_start)
+    ).one() or 0)
+    previous_admissions = int(session.exec(
+        select(func.count()).select_from(Dossier).where(
+            *scope_filters,
+            Dossier.admit_time >= previous_period_start,
+            Dossier.admit_time < period_start,
+        )
+    ).one() or 0)
     rotation_rate = current_admissions / total_beds
     previous_rotation_rate = previous_admissions / total_beds
     rotation_trend = round(rotation_rate - previous_rotation_rate, 2) if previous_admissions else None

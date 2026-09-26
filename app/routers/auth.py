@@ -16,7 +16,6 @@ from app.auth import (
     UserInDB,
     Token,
     ACCESS_TOKEN_EXPIRE_MINUTES,
-    SECRET_KEY,
     ALGORITHM,
     REFRESH_TOKEN_EXPIRE_DAYS,
     blacklist_token

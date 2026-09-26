@@ -3,7 +3,6 @@ Import/Export de structure hospitalière via Excel
 """
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.responses import StreamingResponse, HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from typing import Optional, Literal
 import io
@@ -22,10 +21,10 @@ from app.models_structure import (
     UniteHebergement, Chambre, Lit
 )
 from app.schemas.import_schemas import ImportAction
+from app.templates import templates
 
 router = APIRouter(prefix="/api/structure", tags=["Structure Import/Export"])
 ui_router = APIRouter(prefix="/structure", tags=["Structure Import/Export UI"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 def _require_openpyxl() -> None:

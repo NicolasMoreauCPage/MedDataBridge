@@ -4,7 +4,6 @@ Routes web pour la gestion des contrats médicaux
 """
 
 from fastapi import APIRouter, Request, Depends, Form, HTTPException
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import date
@@ -13,9 +12,9 @@ from app.db import get_session
 from app.models import Dossier
 from app.models.practitioners import MedecinResponsable
 from app.services.contract_service import ContractService
+from app.templates import templates
 
 router = APIRouter(prefix="/contracts", tags=["Contrats Web"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/")

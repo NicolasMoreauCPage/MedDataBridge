@@ -2,7 +2,6 @@
 from typing import List, Optional, Union
 import logging
 from fastapi import HTTPException, Request
-from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
 from app.models_structure import (
@@ -23,8 +22,8 @@ from app.models_structure import (
     LocationServiceType,
 )
 from app.services.vocabulary_lookup import get_vocabulary_options
+from app.templates import templates
 
-templates = Jinja2Templates(directory="app/templates")
 
 
 # Entity getters with 404 handling

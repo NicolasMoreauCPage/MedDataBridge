@@ -18,3 +18,11 @@ def test_analytics_dashboard_uses_the_requested_geographical_entity(client: Test
     assert f'data-eg-id="{eg.id}"' in response.text
     assert "js/analytics-dashboard-workspace.js" in response.text
     assert f"eg_id={eg.id}&amp;period=30d" in response.text
+
+
+def test_analytics_kpis_returns_an_empty_scope_without_loading_domain_rows(client: TestClient) -> None:
+    response = client.get("/api/analytics/kpis?period=30d")
+
+    assert response.status_code == 200
+    assert response.json()["total_beds"] == 0
+    assert response.json()["available_beds"] == 0

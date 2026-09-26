@@ -7,7 +7,6 @@ Router pour les interactions avancées sur la structure (Phase 5)
 
 from fastapi import APIRouter, Depends, HTTPException, Body, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from typing import Optional, Dict, Any
 from datetime import datetime
@@ -23,12 +22,11 @@ from app.models_structure import (
     Chambre,
     Lit
 )
+from app.templates import templates
 
 router = APIRouter(prefix="/api/structure", tags=["Structure Interactive"])
 ui_router = APIRouter(prefix="/structure", tags=["Structure Interactive UI"])
 
-# Templates
-templates = Jinja2Templates(directory="app/templates")
 
 
 def _ensure_e2e_demo_structure(session: Session, egs: list[EntiteGeographique]) -> list[EntiteGeographique]:

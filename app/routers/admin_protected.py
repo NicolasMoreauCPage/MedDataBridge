@@ -12,7 +12,7 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
 @router.get("/users")
-async def list_users(request: Request, user: UserInDB = Depends(require_role("admin"))):
+def list_users(request: Request, user: UserInDB = Depends(require_role("admin"))):
     """
     Liste tous les utilisateurs (admin only).
     
@@ -35,7 +35,7 @@ async def list_users(request: Request, user: UserInDB = Depends(require_role("ad
 
 
 @router.get("/stats")
-async def get_system_stats(request: Request, user: UserInDB = Depends(RoleChecker(["admin", "moderator"]))):
+def get_system_stats(request: Request, user: UserInDB = Depends(RoleChecker(["admin", "moderator"]))):
     """
     Récupère les statistiques système.
     

@@ -4,16 +4,15 @@ import re
 from typing import Tuple, Optional
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlmodel import Session
 
 from app.db import get_session
 from app.models_structure import IdentifierNamespace
 from app.utils.flash import flash
+from app.templates import templates
 from .helpers import get_context_or_404
 
 logger = logging.getLogger(__name__)
-templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(prefix="/{context_id}/namespaces", tags=["ght_namespaces"])
 
 

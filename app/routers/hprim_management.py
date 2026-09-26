@@ -2,19 +2,15 @@ import json
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Request, Depends, HTTPException, Query
-from fastapi.templating import Jinja2Templates
-from pathlib import Path
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlmodel import select
 
 from app.db import get_session
 from app.models.hprim_models import HprimMessage
+from app.templates import templates
 
 router = APIRouter(prefix="/hprim", tags=["HPRIM Management"])
-
-templates_dir = str(Path(__file__).parent.parent / "templates")
-templates = Jinja2Templates(directory=templates_dir)
 
 @router.get("/test-files", summary="Interface de gestion des fichiers HPRIM de test")
 async def hprim_test_files_interface(request: Request):

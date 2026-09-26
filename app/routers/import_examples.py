@@ -14,6 +14,7 @@ from config.settings import settings
 router = APIRouter(prefix="/import", tags=["import"])
 logger = logging.getLogger(__name__)
 UPLOAD_CHUNK_SIZE = 64 * 1024
+MAX_PAM_UPLOAD_FILES = 20
 
 @lru_cache(maxsize=1)
 def _load_import_impls():
@@ -162,12 +163,18 @@ def import_pam_messages_endpoint(
     """Importe des messages PAM HL7 via upload."""
     if not files:
         raise HTTPException(status_code=400, detail="Aucun fichier PAM fourni")
+    if len(files) > MAX_PAM_UPLOAD_FILES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Trop de fichiers PAM (maximum {MAX_PAM_UPLOAD_FILES})",
+        )
 
     ej = _resolve_ej(session, ej_id)
     _, import_pam_messages_impl = _load_import_impls()
 
     max_size = settings.max_upload_size_mb * 1024 * 1024
     imported_filenames: list[str] = []
+    total_size = 0
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir_path = Path(tmpdir)
@@ -179,6 +186,12 @@ def import_pam_messages_endpoint(
             content = _read_upload_limited(file.file, max_size)
             if len(content) == 0:
                 raise HTTPException(status_code=400, detail=f"Fichier PAM vide: {file.filename}")
+            total_size += len(content)
+            if total_size > max_size:
+                raise HTTPException(
+                    status_code=413,
+                    detail="Taille cumulée des fichiers PAM trop volumineuse",
+                )
 
             with open(file_path, "xb") as f:
                 f.write(content)

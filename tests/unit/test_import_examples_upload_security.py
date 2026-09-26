@@ -5,7 +5,9 @@ from pathlib import Path
 
 import pytest
 from fastapi import HTTPException
+from fastapi import UploadFile
 
+from app.routers import import_examples
 from app.routers.import_examples import _read_upload_limited, _safe_pam_upload_destination
 
 
@@ -44,3 +46,15 @@ def test_upload_reader_rejects_the_first_byte_above_the_limit():
 
 def test_upload_reader_preserves_content_within_limit():
     assert _read_upload_limited(BytesIO(b"abcde"), max_size=5) == b"abcde"
+
+
+def test_pam_import_rejects_more_than_the_allowed_file_count():
+    files = [
+        UploadFile(filename=f"message-{index}.hl7", file=BytesIO(b"MSH|test"))
+        for index in range(import_examples.MAX_PAM_UPLOAD_FILES + 1)
+    ]
+
+    with pytest.raises(HTTPException) as error:
+        import_examples.import_pam_messages_endpoint(1, files, object())
+
+    assert error.value.status_code == 413

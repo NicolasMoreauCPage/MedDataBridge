@@ -19,6 +19,26 @@ from app.protocols.hprim.models import (
 logger = logging.getLogger(__name__)
 
 
+def _parse_hprim_xml(xml_string: str) -> etree._Element:
+    """Parse un document HPRIM sans autoriser les constructions XML externes.
+
+    Les messages HPRIM proviennent de systèmes tiers. Les DTD ne font pas
+    partie du format attendu et permettraient l'introduction d'entités
+    externes ; elles sont donc refusées avant le parsing.
+    """
+    if re.search(r"<!DOCTYPE\b", xml_string, flags=re.IGNORECASE):
+        raise ValueError("DOCTYPE XML interdite")
+
+    parser = etree.XMLParser(
+        resolve_entities=False,
+        no_network=True,
+        load_dtd=False,
+        dtd_validation=False,
+        huge_tree=False,
+    )
+    return etree.fromstring(xml_string.encode("iso-8859-1"), parser=parser)
+
+
 class HprimValidationError(Exception):
     """Erreur de validation HPRIM"""
     def __init__(self, code: str, message: str, field: Optional[str] = None):
@@ -127,7 +147,7 @@ class HprimValidator:
         """
         try:
             # Parser sans valider, récupérer le nom local (sans namespace)
-            root = etree.fromstring(xml_string.encode('iso-8859-1'))
+            root = _parse_hprim_xml(xml_string)
             # localname: séparer namespace si présent
             tag = root.tag
             if '}' in tag:
@@ -158,7 +178,7 @@ class HprimValidator:
 
         try:
             # Parse XML
-            xml_doc = etree.fromstring(xml_string.encode('iso-8859-1'))
+            xml_doc = _parse_hprim_xml(xml_string)
 
             # Validation XSD
             self._schemas[schema_name].validate(xml_doc)

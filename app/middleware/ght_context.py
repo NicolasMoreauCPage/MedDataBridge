@@ -31,6 +31,11 @@ import os
 logger = logging.getLogger(__name__)
 
 
+def _request_session_factory(request: Request):
+    """Use the database bound to this FastAPI instance when available."""
+    return getattr(request.app.state, "session_factory", None) or session_factory
+
+
 async def get_active_ght_context(request: Request) -> Optional[GHTContext]:
     """
     Récupère le contexte GHT actif depuis la session et renvoie l'objet complet.
@@ -51,7 +56,7 @@ async def get_active_ght_context(request: Request) -> Optional[GHTContext]:
             logger.debug("[get_active_ght_context] context_id=%s", context_id)
 
         if context_id:
-            with session_factory() as session:
+            with _request_session_factory(request)() as session:
                 ctx = session.get(GHTContext, context_id)
                 if debug_enabled:
                     logger.debug("[get_active_ght_context] Loaded context: %s", getattr(ctx, 'name', None))
@@ -74,7 +79,7 @@ async def get_active_ght_context(request: Request) -> Optional[GHTContext]:
                             parsed = _json.loads(raw)
                         plain_gid = parsed.get("ght_id")
                         if plain_gid is not None:
-                                with session_factory() as session:
+                                with _request_session_factory(request)() as session:
                                     ctx = session.get(GHTContext, int(plain_gid))
                                     # Best-effort populate session for the request
                                     try:
@@ -94,7 +99,7 @@ async def get_active_ght_context(request: Request) -> Optional[GHTContext]:
                 if request.cookies.get("medbridge_test"):
                     plain_gid = request.cookies.get("ght_context_id")
                     if plain_gid:
-                        with session_factory() as session:
+                        with _request_session_factory(request)() as session:
                             ctx = session.get(GHTContext, int(plain_gid))
                             return ctx
         except Exception as exc:
@@ -110,7 +115,7 @@ async def get_active_patient_context(request: Request) -> Optional[Patient]:
     try:
         patient_id = request.session.get("patient_id")
         if patient_id:
-            with session_factory() as session:
+            with _request_session_factory(request)() as session:
                 return session.get(Patient, patient_id)
     except Exception as exc:
         logger.debug("Optional operation skipped", exc_info=exc)
@@ -122,7 +127,7 @@ async def get_active_ej_context(request: Request) -> Optional[EntiteJuridique]:
     try:
         ej_id = request.session.get("ej_context_id")
         if ej_id:
-            with session_factory() as session:
+            with _request_session_factory(request)() as session:
                 return session.get(EntiteJuridique, ej_id)
     except Exception as exc:
         logger.debug("Optional operation skipped", exc_info=exc)
@@ -134,7 +139,7 @@ async def get_active_eg_context(request: Request) -> Optional[EntiteGeographique
     try:
         eg_id = request.session.get("eg_context_id")
         if eg_id:
-            with session_factory() as session:
+            with _request_session_factory(request)() as session:
                 return session.get(EntiteGeographique, eg_id)
     except Exception as exc:
         logger.debug("Optional operation skipped", exc_info=exc)
@@ -146,7 +151,7 @@ async def get_active_dossier_context(request: Request) -> Optional[Dossier]:
     try:
         dossier_id = request.session.get("dossier_id")
         if dossier_id:
-            with session_factory() as session:
+            with _request_session_factory(request)() as session:
                 return session.get(Dossier, dossier_id)
     except Exception as exc:
         logger.debug("Optional operation skipped", exc_info=exc)
@@ -165,7 +170,7 @@ async def get_error_message_count(request: Request) -> int:
     - Sinon: tous les messages en erreur
     """
     try:
-        with session_factory() as session:
+        with _request_session_factory(request)() as session:
             query = select(func.count(MessageLog.id)).where(MessageLog.validation_status == "error")
             
             # Filtrer par contexte du plus spécifique au plus général

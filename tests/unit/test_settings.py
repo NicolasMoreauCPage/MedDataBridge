@@ -62,8 +62,10 @@ def test_create_app_only_mounts_login_routes_when_security_is_enabled():
         bootstrap_admin_password="administrateur-test-fort",
     ))
 
-    local_paths = {route.path for route in local_app.routes}
-    secured_paths = {route.path for route in secured_app.routes}
+    # FastAPI peut conserver les routeurs inclus sous forme différée ; le
+    # document OpenAPI est l'inventaire public et stable des routes exposées.
+    local_paths = set(local_app.openapi()["paths"])
+    secured_paths = set(secured_app.openapi()["paths"])
 
     assert "/auth/login" not in local_paths
     assert "/auth/login" in secured_paths

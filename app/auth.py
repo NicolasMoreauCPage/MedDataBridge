@@ -11,7 +11,8 @@ from datetime import datetime, timedelta
 from typing import Optional, Callable
 import json
 from passlib.context import CryptContext
-from jose import JWTError, jwt
+import jwt
+from jwt import InvalidTokenError
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
@@ -341,7 +342,7 @@ def decode_token(
         
         return TokenData(username=username, user_id=user_id, roles=roles)
     
-    except JWTError:
+    except InvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token invalide ou expiré",

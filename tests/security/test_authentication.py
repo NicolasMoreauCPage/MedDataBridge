@@ -8,7 +8,7 @@ import pytest
 import time
 from datetime import timedelta
 from fastapi.testclient import TestClient
-from jose import jwt as jose_jwt
+import jwt
 
 from app.app import create_app
 from config.settings import Settings
@@ -302,7 +302,7 @@ class TestAuthentication:
         token = login_response.json()["access_token"]
 
         # Décoder le token
-        payload = jose_jwt.decode(token, client.app.state.settings.jwt_secret_key, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, client.app.state.settings.jwt_secret_key, algorithms=[ALGORITHM])
 
         # Vérifier la structure
         assert "sub" in payload  # Subject (username)

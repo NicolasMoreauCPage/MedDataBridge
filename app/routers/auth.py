@@ -191,7 +191,7 @@ async def refresh_token_endpoint(http_request: Request, request: RefreshTokenReq
           -d '{"refresh_token": "YOUR_REFRESH_TOKEN"}'
         ```
     """
-    from jose import jwt as jose_jwt
+    import jwt
     
     try:
         # Décoder le refresh token
@@ -204,7 +204,7 @@ async def refresh_token_endpoint(http_request: Request, request: RefreshTokenReq
         )
         
         # Extraire le jti pour révocation
-        payload = jose_jwt.decode(
+        payload = jwt.decode(
             request.refresh_token,
             http_request.app.state.settings.jwt_secret_key,
             algorithms=[ALGORITHM],
@@ -260,11 +260,11 @@ async def logout(
     Révoque le token d'accès en cours en l'ajoutant à la blacklist.
     Le client doit supprimer son refresh token localement.
     """
-    from jose import jwt as jose_jwt
+    import jwt
     
     try:
         # Extraire le jti du token d'accès
-        payload = jose_jwt.decode(
+        payload = jwt.decode(
             token.credentials,
             request.app.state.settings.jwt_secret_key,
             algorithms=[ALGORITHM],

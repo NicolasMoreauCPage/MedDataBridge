@@ -77,7 +77,15 @@ def snapshot_entity(entity, entity_type: str, session: Session) -> dict:
                 "location": getattr(entity, "location", None),
             })
         else:
-            snapshot.update({key: getattr(entity, key, None) for key in dir(entity) if not key.startswith("_")})
+            model_dump = getattr(entity, "model_dump", None)
+            if callable(model_dump):
+                snapshot.update(model_dump(mode="python"))
+            else:
+                snapshot.update({
+                    key: value
+                    for key, value in vars(entity).items()
+                    if not key.startswith("_")
+                })
     except Exception:
         logger.exception("Impossible de créer le snapshot de l'entité %s", entity)
     return snapshot

@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+from pydantic import BaseModel
+
 from app.services.emission_snapshot import snapshot_entity
 
 
@@ -57,4 +59,15 @@ def test_mouvement_snapshot_keeps_only_generator_fields():
         "trigger_event": "A02",
         "uf_responsabilite": "UF-1",
         "location": "B-02",
+    }
+
+
+def test_generic_snapshot_uses_pydantic_model_dump():
+    class GenericEntity(BaseModel):
+        id: int
+        label: str
+
+    assert snapshot_entity(GenericEntity(id=1, label="test"), "unknown", _UnusedSession()) == {
+        "id": 1,
+        "label": "test",
     }

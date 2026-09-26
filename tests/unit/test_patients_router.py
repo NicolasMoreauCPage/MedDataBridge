@@ -395,11 +395,13 @@ def test_list_patients_with_ej_context(client: TestClient, session: Session):
 
     ej = EntiteJuridique(name="Test EJ", code="EJ001", ght_context_id=ght.id)
     session.add(ej)
+    other_ej = EntiteJuridique(name="Autre EJ", code="EJ002", ght_context_id=ght.id)
+    session.add(other_ej)
     session.commit()
 
     # Créer patients dans différentes EJ
     patient1 = Patient(family="Dupont", given="Jean", birth_date="1990-01-15", entite_juridique_id=ej.id)
-    patient2 = Patient(family="Martin", given="Marie", birth_date="1985-03-20", entite_juridique_id=999)  # EJ différente
+    patient2 = Patient(family="Martin", given="Marie", birth_date="1985-03-20", entite_juridique_id=other_ej.id)
     session.add(patient1)
     session.add(patient2)
     session.commit()

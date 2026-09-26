@@ -51,7 +51,6 @@ def test_set_dossier_context_success(client: TestClient, session: Session):
         dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         patient_id=patient.id,
         admit_time="2023-01-15T10:00:00",
-        entite_juridique_id=1
     )
     session.add(dossier)
     session.commit()

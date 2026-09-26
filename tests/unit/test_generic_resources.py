@@ -6,7 +6,7 @@ Tests pour les ressources génériques (ZGEN) - chambres et lits sans contrainte
 import uuid
 from sqlmodel import Session, select
 from app.models_structure import Chambre, Lit
-from app.models import Venue, Patient
+from app.models import Dossier, Patient, Venue
 from app.services.structure_validation import (
     is_generic_resource,
     validate_room_occupancy,
@@ -15,6 +15,18 @@ from app.services.structure_validation import (
     get_available_rooms,
     get_available_beds
 )
+
+
+def _create_dossier(session: Session, patient: Patient) -> Dossier:
+    """Create the parent record required by a Venue foreign key."""
+    dossier = Dossier(
+        dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1_000_000,
+        patient_id=patient.id,
+        admit_time="2025-12-20T10:00:00",
+    )
+    session.add(dossier)
+    session.flush()
+    return dossier
 
 
 class TestGenericResources:
@@ -63,6 +75,7 @@ class TestGenericResources:
         )
         session.add(patient)
         session.commit()
+        dossier = _create_dossier(session, patient)
 
         # Test chambre générique : toujours disponible
         assert validate_room_occupancy(session, generic_room.id, patient.id)
@@ -74,7 +87,7 @@ class TestGenericResources:
         venue = Venue(
             venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             patient_id=patient.id,
-            dossier_id=patient.dossiers[0].id if patient.dossiers else 1,
+            dossier_id=dossier.id,
             chambre_id=normal_room.id,
             start_time="2025-12-20T10:00:00"
         )
@@ -88,7 +101,7 @@ class TestGenericResources:
         venue_generic = Venue(
             venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             patient_id=patient.id,
-            dossier_id=patient.dossiers[0].id if patient.dossiers else 1,
+            dossier_id=dossier.id,
             chambre_id=generic_room.id,
             start_time="2025-12-20T10:00:00"
         )
@@ -126,6 +139,7 @@ class TestGenericResources:
         )
         session.add(patient)
         session.commit()
+        dossier = _create_dossier(session, patient)
 
         # Test lit générique : toujours disponible
         assert validate_bed_occupancy(session, generic_bed.id, patient.id) 
@@ -136,7 +150,7 @@ class TestGenericResources:
         # Occuper le lit normal
         venue = Venue(
             venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
-            dossier_id=1,
+            dossier_id=dossier.id,
             patient_id=patient.id,
             lit_id=normal_bed.id,
             start_time="2025-12-20T10:00:00"
@@ -229,10 +243,11 @@ class TestGenericResources:
         patient = Patient(family="Test", given="Patient", identifier="test-patient")
         session.add(patient)
         session.commit()
+        dossier = _create_dossier(session, patient)
 
         venue = Venue(
             venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
-            dossier_id=1,
+            dossier_id=dossier.id,
             patient_id=patient.id,
             chambre_id=normal_room_occupied.id,
             start_time="2025-12-20T10:00:00"
@@ -282,10 +297,11 @@ class TestGenericResources:
         patient = Patient(family="Test", given="Patient", identifier="test-patient-bed")
         session.add(patient)
         session.commit()
+        dossier = _create_dossier(session, patient)
 
         venue = Venue(
             venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
-            dossier_id=1,
+            dossier_id=dossier.id,
             patient_id=patient.id,
             lit_id=normal_bed_occupied.id,
             start_time="2025-12-20T10:00:00"
@@ -315,6 +331,7 @@ class TestGenericResourcesIntegration:
             is_generic=True
         )
         session.add(chambre)
+        session.flush()
 
         # Créer un lit dans cette chambre
         lit = Lit(
@@ -337,12 +354,13 @@ class TestGenericResourcesIntegration:
             session.add(patient)
             patients.append(patient)
         session.commit()
+        dossiers = {patient.id: _create_dossier(session, patient) for patient in patients}
 
         # Créer des venues pour tous les patients dans la même chambre/lit générique
         for i, patient in enumerate(patients):
             venue = Venue(
                 venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
-                dossier_id=1,
+                dossier_id=dossiers[patient.id].id,
                 patient_id=patient.id,
                 chambre_id=chambre.id,
                 lit_id=lit.id,

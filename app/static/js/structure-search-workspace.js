@@ -217,7 +217,7 @@ class AdvancedStructureSearch {
     document.getElementById('search-results').style.display = 'block';
     
     const resultsList = document.getElementById('results-list');
-    resultsList.innerHTML = '';
+    resultsList.replaceChildren();
 
     // Convertir les résultats FHIR en format de cartes
     this.currentResults.forEach((entry) => {
@@ -277,7 +277,7 @@ class AdvancedStructureSearch {
 
   updatePagination() {
     const container = document.getElementById('search-pagination');
-    container.innerHTML = '';
+    container.replaceChildren();
 
     if (this.totalResults <= this.pageSize) {
       return; // Pas de pagination nécessaire
@@ -370,7 +370,7 @@ class AdvancedStructureSearch {
     }
 
     historyContainer.style.display = 'block';
-    historyList.innerHTML = '';
+    historyList.replaceChildren();
 
     this.searchHistory.forEach((item, index) => {
       const historyItem = document.createElement('div');
@@ -380,11 +380,14 @@ class AdvancedStructureSearch {
         .map(([key, value]) => `${key}:"${value}"`)
         .join(', ');
       
-      historyItem.innerHTML = `
-        <span>🔍</span>
-        <span style="flex: 1;">${queryText}</span>
-        <small>${item.results} résultats</small>
-      `;
+      const icon = document.createElement('span');
+      icon.textContent = '🔍';
+      const query = document.createElement('span');
+      query.style.flex = '1';
+      query.textContent = queryText;
+      const count = document.createElement('small');
+      count.textContent = `${item.results} résultats`;
+      historyItem.append(icon, query, count);
 
       historyItem.onclick = () => {
         this.loadFromHistory(item);

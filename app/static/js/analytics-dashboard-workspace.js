@@ -322,17 +322,17 @@ async function loadAlerts(severity = '') {
       }[alert.severity];
       
       return `
-        <div class="analytics-alert-item ${alert.severity}">
+          <div class="analytics-alert-item ${['high', 'medium', 'low'].includes(alert.severity) ? alert.severity : 'low'}">
           <div class="text-2xl">${severityIcon}</div>
           <div class="flex-1">
-            <div class="font-semibold text-slate-800 mb-1">${alert.entity_name}</div>
-            <div class="text-sm text-slate-600">${alert.message}</div>
+            <div class="font-semibold text-slate-800 mb-1">${escapeHtml(alert.entity_name)}</div>
+            <div class="text-sm text-slate-600">${escapeHtml(alert.message)}</div>
           </div>
           <div class="text-right">
             <div class="text-lg font-bold ${getValueColor(alert.current_value, alert.threshold_value, alert.alert_type)}">
-              ${alert.current_value}%
+              ${Number(alert.current_value) || 0}%
             </div>
-            <div class="text-xs text-slate-500">Seuil: ${alert.threshold_value}%</div>
+            <div class="text-xs text-slate-500">Seuil: ${Number(alert.threshold_value) || 0}%</div>
           </div>
         </div>
       `;
@@ -340,6 +340,12 @@ async function loadAlerts(severity = '') {
   } catch (error) {
     console.error('Erreur alertes:', error);
   }
+}
+
+function escapeHtml(value) {
+  const node = document.createElement('span');
+  node.textContent = String(value ?? '');
+  return node.innerHTML;
 }
 
 // Couleur valeur alerte
@@ -395,4 +401,3 @@ function updateExportLinks() {
     csvLink.href = `/api/analytics/export/csv?${csvQuery}`;
   }
 }
-

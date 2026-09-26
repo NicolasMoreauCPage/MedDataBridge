@@ -2,7 +2,7 @@
 Informations de version de l'application.
 """
 
-__version__ = "2.0.1"
+__version__ = "2.0.2"
 __app_name__ = "PAMélia"
 
 

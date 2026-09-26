@@ -1,6 +1,12 @@
 // État global
 let currentRules = [];
 
+function escapeHtml(value) {
+    const node = document.createElement('span');
+    node.textContent = String(value ?? '');
+    return node.innerHTML;
+}
+
 // Charger les règles au chargement de la page
 document.addEventListener('DOMContentLoaded', () => {
     loadRules();
@@ -55,11 +61,11 @@ function renderRules(rules) {
     }
     
     container.innerHTML = rules.map(rule => `
-        <div class="alert-config-rule ${rule.severity} bg-white p-4 rounded-lg shadow">
+        <div class="alert-config-rule ${['high', 'medium', 'low'].includes(rule.severity) ? rule.severity : 'low'} bg-white p-4 rounded-lg shadow">
             <div class="flex justify-between items-start">
                 <div class="flex-1">
                     <div class="flex items-center space-x-2 mb-2">
-                        <h3 class="text-lg font-semibold">${formatAlertType(rule.alert_type)}</h3>
+                        <h3 class="text-lg font-semibold">${escapeHtml(formatAlertType(rule.alert_type))}</h3>
                         <span class="${rule.is_active ? 'alert-config-badge-active' : 'alert-config-badge-inactive'}">
                             ${rule.is_active ? 'Active' : 'Inactive'}
                         </span>
@@ -69,24 +75,24 @@ function renderRules(rules) {
                     </div>
                     
                     <div class="text-gray-600 mb-2">
-                        <strong>Seuil:</strong> ${rule.threshold_value}% 
-                        ${rule.um_code ? `| <strong>UM:</strong> ${rule.um_code}` : ''}
-                        ${rule.service_id ? `| <strong>Service:</strong> #${rule.service_id}` : ''}
+                        <strong>Seuil:</strong> ${Number(rule.threshold_value) || 0}%
+                        ${rule.um_code ? `| <strong>UM:</strong> ${escapeHtml(rule.um_code)}` : ''}
+                        ${rule.service_id ? `| <strong>Service:</strong> #${Number(rule.service_id) || 0}` : ''}
                     </div>
                     
-                    ${rule.description ? `<p class="text-sm text-gray-500">${rule.description}</p>` : ''}
+                    ${rule.description ? `<p class="text-sm text-gray-500">${escapeHtml(rule.description)}</p>` : ''}
                 </div>
                 
                 <div class="flex space-x-2">
-                    <button type="button" data-alert-action="edit" data-rule-id="${rule.id}"
+                    <button type="button" data-alert-action="edit" data-rule-id="${Number(rule.id) || 0}"
                             class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
                         ✏️ Modifier
                     </button>
-                    <button type="button" data-alert-action="toggle" data-rule-id="${rule.id}" data-next-active="${!rule.is_active}"
+                    <button type="button" data-alert-action="toggle" data-rule-id="${Number(rule.id) || 0}" data-next-active="${!rule.is_active}"
                             class="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
                         ${rule.is_active ? '⏸️ Désactiver' : '▶️ Activer'}
                     </button>
-                    <button type="button" data-alert-action="delete" data-rule-id="${rule.id}"
+                    <button type="button" data-alert-action="delete" data-rule-id="${Number(rule.id) || 0}"
                             class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200">
                         🗑️ Supprimer
                     </button>

@@ -8,11 +8,11 @@ Fournit:
 - Rotation de refresh tokens avec blacklist Redis
 """
 from datetime import datetime, timedelta
-from typing import Optional, Dict
+from typing import Optional, Callable
 import json
 from passlib.context import CryptContext
 from jose import JWTError, jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 import os
@@ -26,13 +26,14 @@ logger = logging.getLogger(__name__)
 
 
 # Configuration JWT
-def _resolve_jwt_secret() -> str:
+def _resolve_jwt_secret(runtime_settings=None) -> str:
     """Résout et valide la clé secrète JWT.
 
     En production, une clé explicite est obligatoire.
     En dev/tests, on autorise une valeur de secours pour ne pas bloquer les exécutions locales.
     """
-    secret = settings.jwt_secret_key or os.getenv("JWT_SECRET_KEY") or settings.secret_key
+    active_settings = runtime_settings or settings
+    secret = active_settings.jwt_secret_key or os.getenv("JWT_SECRET_KEY") or active_settings.secret_key
     insecure_defaults = {
         "dev-secret-key-change-in-production",
         "change-me-in-production",
@@ -46,7 +47,7 @@ def _resolve_jwt_secret() -> str:
     debug_env = os.getenv("DEBUG", "false").strip().lower() in ("1", "true", "yes", "on")
     running_under_pytest = "pytest" in sys.modules
 
-    if settings.testing or settings.debug or testing_env or debug_env or running_under_pytest:
+    if active_settings.testing or active_settings.debug or testing_env or debug_env or running_under_pytest:
         logger.warning(
             "JWT_SECRET_KEY non sécurisé détecté en mode dev/test, utilisation d'une clé de secours locale"
         )
@@ -105,34 +106,14 @@ class UserInDB(BaseModel):
     is_active: bool = True
 
 
-# Base de données utilisateurs simulée (à remplacer par vraie DB)
-# Hashes pré-calculés pour éviter les problèmes bcrypt à l'import
-# admin:admin = $2b$12$... (bcrypt)
-# user:user = $2b$12$... (bcrypt)
-fake_users_db: Dict[str, UserInDB] = {
-    "admin": UserInDB(
-        id=1,
-        username="admin",
-        email="admin@example.com",
-        # Password: "admin" (bcrypt hashed)
-        hashed_password="$2b$12$aLbYNHIBy.8fKOqN.hFOSu5sLN6BrLriowFe300LsQajYhBNhy.Y2",
-        roles=["admin", "user"],
-        is_active=True
-    ),
-    "user": UserInDB(
-        id=2,
-        username="user",
-        email="user@example.com",
-        # Password: "user" (bcrypt hashed)
-        hashed_password="$2b$12$Uy/7mVKjNIvebrLBQAgbA.WV0VWfe6mmRv.15bMqdTtIZdoxJRBky",
-        roles=["user"],
-        is_active=True
-    )
-}
-
-
-def _database_user(username: str) -> Optional[UserInDB]:
-    from app.db import session_factory
+def _database_user(
+    username: str,
+    session_factory: Callable | None = None,
+) -> Optional[UserInDB]:
+    """Charge un compte local depuis la fabrique de sessions de l'application."""
+    if session_factory is None:
+        from app.db import session_factory as default_session_factory
+        session_factory = default_session_factory
     from sqlmodel import select
     with session_factory() as session:
         row = session.exec(select(LocalUser).where(LocalUser.username == username)).first()
@@ -162,9 +143,19 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def authenticate_user(username: str, password: str) -> Optional[UserInDB]:
-    """Authentifie un utilisateur."""
-    user = _database_user(username) if settings.security_enabled else fake_users_db.get(username)
+def authenticate_user(
+    username: str,
+    password: str,
+    *,
+    session_factory: Callable | None = None,
+) -> Optional[UserInDB]:
+    """Authentifie un compte local persistant.
+
+    Cette fonction ne possède volontairement aucun compte de démonstration :
+    dès que les routes d'authentification sont montées, l'unique source de
+    vérité est la base de données de l'instance FastAPI concernée.
+    """
+    user = _database_user(username, session_factory)
     if not user:
         return None
     if not verify_password(password, user.hashed_password):
@@ -172,7 +163,12 @@ def authenticate_user(username: str, password: str) -> Optional[UserInDB]:
     return user
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(
+    data: dict,
+    expires_delta: Optional[timedelta] = None,
+    *,
+    runtime_settings=None,
+) -> str:
     """Crée un token JWT avec jti (JWT ID) unique."""
     to_encode = data.copy()
     
@@ -184,11 +180,17 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     # Ajouter jti (JWT ID) unique pour traçabilité et révocation
     jti = str(uuid.uuid4())
     to_encode.update({"exp": expire, "type": "access", "jti": jti})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, _resolve_jwt_secret(runtime_settings), algorithm=ALGORITHM)
     return encoded_jwt
 
 
-def create_refresh_token(data: dict, include_roles: bool = True) -> str:
+def create_refresh_token(
+    data: dict,
+    include_roles: bool = True,
+    *,
+    runtime_settings=None,
+    session_factory: Callable | None = None,
+) -> str:
     """Crée un refresh token avec jti unique.
 
     Args:
@@ -197,10 +199,10 @@ def create_refresh_token(data: dict, include_roles: bool = True) -> str:
     """
     to_encode = data.copy()
     if include_roles and "roles" not in to_encode:
-        # Si les rôles ne sont pas présents mais l'utilisateur existe dans la DB factice, les récupérer
+        # Si les rôles ne sont pas présents, les relire depuis les comptes locaux.
         username = to_encode.get("sub")
         if username:
-            user = _database_user(username) if settings.security_enabled else fake_users_db.get(username)
+            user = _database_user(username, session_factory)
             if user:
                 to_encode["roles"] = user.roles
     expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
@@ -208,24 +210,49 @@ def create_refresh_token(data: dict, include_roles: bool = True) -> str:
     # Ajouter jti unique pour rotation et révocation
     jti = str(uuid.uuid4())
     to_encode.update({"exp": expire, "type": "refresh", "jti": jti})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, _resolve_jwt_secret(runtime_settings), algorithm=ALGORITHM)
     return encoded_jwt
 
 
-def is_token_blacklisted(jti: str) -> bool:
+def is_token_blacklisted(
+    jti: str,
+    *,
+    cache=None,
+    fallback_blacklist: dict[str, float] | None = None,
+    security_enabled: bool | None = None,
+) -> bool:
     """Vérifie si un token est blacklisté."""
+    if fallback_blacklist is not None:
+        expires_at = fallback_blacklist.get(jti)
+        if expires_at is not None:
+            if expires_at > datetime.utcnow().timestamp():
+                return True
+            fallback_blacklist.pop(jti, None)
+        # Les tests ont volontairement Redis désactivé. Ce magasin éphémère
+        # est alors la source de révocation complète, pas une simple cache
+        # secondaire qui ferait échouer tous les jetons valides.
+        return False
     try:
-        from app.services.cache_service import get_cache_service
-        cache = get_cache_service()
+        if cache is None:
+            from app.services.cache_service import get_cache_service
+            cache = get_cache_service()
+        if not getattr(cache, "enabled", False):
+            return bool(security_enabled)
         return cache.exists(f"token:blacklist:{jti}")
     except Exception as e:
         logger.warning(f"Erreur vérification blacklist: {e}")
         # Le mode LAN n'utilise pas de tokens. En mode sécurisé, refuser un
         # token dont la révocation ne peut pas être vérifiée (fail-closed).
-        return settings.security_enabled
+        return settings.security_enabled if security_enabled is None else security_enabled
 
 
-def blacklist_token(jti: str, ttl_seconds: int) -> bool:
+def blacklist_token(
+    jti: str,
+    ttl_seconds: int,
+    *,
+    cache=None,
+    fallback_blacklist: dict[str, float] | None = None,
+) -> bool:
     """Ajoute un token à la blacklist.
     
     Args:
@@ -235,9 +262,13 @@ def blacklist_token(jti: str, ttl_seconds: int) -> bool:
     Returns:
         True si ajouté avec succès, False sinon
     """
+    if fallback_blacklist is not None:
+        fallback_blacklist[jti] = datetime.utcnow().timestamp() + max(ttl_seconds, 0)
+        return True
     try:
-        from app.services.cache_service import get_cache_service
-        cache = get_cache_service()
+        if cache is None:
+            from app.services.cache_service import get_cache_service
+            cache = get_cache_service()
         # Stocker avec TTL pour nettoyage automatique
         return cache.set(f"token:blacklist:{jti}", {"revoked": True}, ttl=ttl_seconds)
     except Exception as e:
@@ -249,6 +280,10 @@ def decode_token(
     token: str,
     check_blacklist: bool = True,
     expected_type: Optional[str] = None,
+    *,
+    runtime_settings=None,
+    cache=None,
+    fallback_blacklist: dict[str, float] | None = None,
 ) -> TokenData:
     """Décode et valide un token JWT.
     
@@ -263,7 +298,8 @@ def decode_token(
         HTTPException: Si le token est invalide, expiré ou révoqué
     """
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        active_settings = runtime_settings or settings
+        payload = jwt.decode(token, _resolve_jwt_secret(active_settings), algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         user_id: int = payload.get("user_id")
         roles: list = payload.get("roles", [])
@@ -285,7 +321,12 @@ def decode_token(
             )
         
         # Vérifier la blacklist si demandé
-        if check_blacklist and jti and is_token_blacklisted(jti):
+        if check_blacklist and jti and is_token_blacklisted(
+            jti,
+            cache=cache,
+            fallback_blacklist=fallback_blacklist,
+            security_enabled=active_settings.security_enabled,
+        ):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token révoqué",
@@ -303,6 +344,7 @@ def decode_token(
 
 
 async def get_current_user(
+    request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ) -> UserInDB:
     """
@@ -313,7 +355,8 @@ async def get_current_user(
         async def protected_route(user: UserInDB = Depends(get_current_user)):
             return {"message": f"Hello {user.username}"}
     """
-    if not settings.security_enabled:
+    app_settings = request.app.state.settings
+    if not app_settings.security_enabled:
         return _local_operator()
 
     if credentials is None:
@@ -324,9 +367,14 @@ async def get_current_user(
         )
 
     token = credentials.credentials
-    token_data = decode_token(token)
+    token_data = decode_token(
+        token,
+        runtime_settings=app_settings,
+        cache=request.app.state.cache,
+        fallback_blacklist=request.app.state.token_blacklist,
+    )
     
-    user = _database_user(token_data.username) if settings.security_enabled else fake_users_db.get(token_data.username)
+    user = _database_user(token_data.username, request.app.state.session_factory)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -40,6 +40,12 @@ Dropzone.options.fileDropzone = {
 };
 
 // Afficher la prévisualisation
+function escapeHtml(value) {
+  const node = document.createElement('span');
+  node.textContent = String(value ?? '');
+  return node.innerHTML;
+}
+
 function showPreview(data) {
   document.getElementById('previewSection').classList.remove('hidden');
   
@@ -78,7 +84,7 @@ function showPreview(data) {
       <div class="bg-red-50 border border-red-200 rounded-lg p-4">
         <div class="font-semibold text-red-900 mb-2">❌ ${data.errors.length} erreur(s) détectée(s)</div>
         <ul class="text-sm text-red-700 space-y-1">
-          ${data.errors.slice(0, 5).map(e => `<li>• ${e.message || e}</li>`).join('')}
+          ${data.errors.slice(0, 5).map(e => `<li>• ${escapeHtml(e.message || e)}</li>`).join('')}
           ${data.errors.length > 5 ? `<li>• ... et ${data.errors.length - 5} autres</li>` : ''}
         </ul>
       </div>
@@ -90,7 +96,7 @@ function showPreview(data) {
       <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
         <div class="font-semibold text-yellow-900 mb-2">⚠️ ${data.warnings.length} avertissement(s)</div>
         <ul class="text-sm text-yellow-700 space-y-1">
-          ${data.warnings.slice(0, 5).map(w => `<li>• ${w.message || w}</li>`).join('')}
+          ${data.warnings.slice(0, 5).map(w => `<li>• ${escapeHtml(w.message || w)}</li>`).join('')}
           ${data.warnings.length > 5 ? `<li>• ... et ${data.warnings.length - 5} autres</li>` : ''}
         </ul>
       </div>
@@ -112,11 +118,11 @@ function createPreviewRow(item, type, actionText, actionClass) {
   const row = document.createElement('tr');
   row.className = 'border-t hover:bg-slate-50';
   row.innerHTML = `
-    <td class="px-4 py-3">${getTypeIcon(item.entity_type)} ${item.entity_type || 'N/A'}</td>
-    <td class="px-4 py-3 font-mono text-sm">${item.code || item.entity_code || 'N/A'}</td>
-    <td class="px-4 py-3">${item.nom || item.name || 'N/A'}</td>
+    <td class="px-4 py-3">${getTypeIcon(item.entity_type)} ${escapeHtml(item.entity_type || 'N/A')}</td>
+    <td class="px-4 py-3 font-mono text-sm">${escapeHtml(item.code || item.entity_code || 'N/A')}</td>
+    <td class="px-4 py-3">${escapeHtml(item.nom || item.name || 'N/A')}</td>
     <td class="px-4 py-3 ${actionClass} font-medium">${actionText}</td>
-    <td class="px-4 py-3 text-xs text-slate-500">${item.message || '-'}</td>
+    <td class="px-4 py-3 text-xs text-slate-500">${escapeHtml(item.message || '-')}</td>
   `;
   return row;
 }

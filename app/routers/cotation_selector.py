@@ -50,7 +50,12 @@ def search_dossiers(
         token = auth.split(None, 1)[1].strip()
         try:
             # decode_token will raise HTTPException if invalid
-            decode_token(token)
+            decode_token(
+                token,
+                runtime_settings=request.app.state.settings,
+                cache=request.app.state.cache,
+                fallback_blacklist=request.app.state.token_blacklist,
+            )
         except HTTPException:
             raise
         except Exception:

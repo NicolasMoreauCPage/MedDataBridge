@@ -73,7 +73,7 @@ class Settings:
     """Validated runtime settings used by application entry points."""
 
     app_name: str = "IntegraSanté by CPage"
-    app_version: str = "1.1.0"
+    app_version: str = "2.0.2"
     debug: bool = False
     testing: bool = False
     database_url: str = "sqlite:///./data/medbridge.db"
@@ -91,6 +91,28 @@ class Settings:
     security_enabled: bool = False
     bootstrap_admin_username: str = ""
     bootstrap_admin_password: str = ""
+
+    def __post_init__(self) -> None:
+        """Apply the same security contract to direct construction and env parsing.
+
+        Tests and embedded deployments legitimately instantiate ``Settings``
+        directly.  Without this check they could accidentally enable the
+        secure routes with development secrets, bypassing ``from_environment``.
+        """
+        if not self.security_enabled:
+            return
+        insecure = {"", "dev-secret-key-change-in-production", "change-me-in-production", "dev-secret-key"}
+        for name, value in (("SECRET_KEY", self.secret_key), ("JWT_SECRET_KEY", self.jwt_secret_key)):
+            if value in insecure or len(value) < 32:
+                raise ConfigurationError(
+                    f"Configuration invalide : {name} doit contenir au moins 32 caractères aléatoires quand SECURITY_ENABLED=true."
+                )
+        if self.secret_key == self.jwt_secret_key:
+            raise ConfigurationError("SECRET_KEY et JWT_SECRET_KEY doivent être distincts quand SECURITY_ENABLED=true.")
+        if not self.bootstrap_admin_username:
+            raise ConfigurationError("BOOTSTRAP_ADMIN_USERNAME ne peut pas être vide quand SECURITY_ENABLED=true.")
+        if len(self.bootstrap_admin_password) < 16:
+            raise ConfigurationError("BOOTSTRAP_ADMIN_PASSWORD doit contenir au moins 16 caractères quand SECURITY_ENABLED=true.")
 
     @classmethod
     def from_environment(cls, environ: Mapping[str, str] | None = None) -> "Settings":

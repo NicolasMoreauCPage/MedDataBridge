@@ -1,5 +1,6 @@
 """Frontière d'authentification globale activée uniquement hors mode LAN."""
 
+from fastapi import HTTPException
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -17,7 +18,14 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             return JSONResponse(status_code=401, content={"detail": "Authentification requise"}, headers={"WWW-Authenticate": "Bearer"})
         try:
             from app.auth import decode_token
-            request.state.user = decode_token(authorization.split(None, 1)[1])
+            request.state.user = decode_token(
+                authorization.split(None, 1)[1],
+                runtime_settings=settings,
+                cache=request.app.state.cache,
+                fallback_blacklist=request.app.state.token_blacklist,
+            )
+        except HTTPException as exc:
+            return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail}, headers=exc.headers)
         except Exception:
             return JSONResponse(status_code=401, content={"detail": "Token invalide"}, headers={"WWW-Authenticate": "Bearer"})
         return await call_next(request)

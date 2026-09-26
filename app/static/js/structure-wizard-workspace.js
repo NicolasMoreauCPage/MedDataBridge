@@ -15,6 +15,12 @@
     let currentStep = 1;
     let isDirty = false;
 
+    function escapeHtml(value) {
+      const node = document.createElement('span');
+      node.textContent = String(value ?? '');
+      return node.innerHTML;
+    }
+
     function notify(message, type = 'info') {
       if (window.toastSystem) window.toastSystem.show(message, type);
     }
@@ -250,9 +256,9 @@
           btn.className = 'border rounded-xl p-3 text-left bg-white hover:bg-slate-50 hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-150 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 flex flex-col gap-1';
           const emoji = tpl.key === 'chu' ? '🏥' : tpl.key === 'ch' ? '🏨' : tpl.key === 'clinique' ? '🏪' : '🏥';
           btn.innerHTML = `
-            <div class="text-sm font-semibold text-slate-900 mb-1">${emoji} ${tpl.name}</div>
-            <p class="text-xs text-slate-600 mb-1">${tpl.description || 'Template de structure hospitalière.'}</p>
-            <p class="text-[11px] text-slate-600 dark:text-slate-300">ID template : ${tpl.key}</p>
+            <div class="text-sm font-semibold text-slate-900 mb-1">${emoji} ${escapeHtml(tpl.name)}</div>
+            <p class="text-xs text-slate-600 mb-1">${escapeHtml(tpl.description || 'Template de structure hospitalière.')}</p>
+            <p class="text-[11px] text-slate-600 dark:text-slate-300">ID template : ${escapeHtml(tpl.key)}</p>
           `;
           templateCards.appendChild(btn);
         }
@@ -344,14 +350,14 @@
                 <div class="flex-1">
                   <div class="flex items-center gap-2">
                     <input type="text" 
-                           value="${pole.name}"
+                           value="${escapeHtml(pole.name)}"
                            data-structure-field="pole:${poleIndex}"
                            class="text-sm font-semibold text-slate-900 border-0 bg-transparent hover:bg-white hover:border hover:border-slate-300 focus:bg-white focus:border focus:border-blue-500 rounded px-2 py-0.5 transition-all"
                            data-wizard-action="update-pole-name" data-pole-index="${poleIndex}" />
                   </div>
                   <div class="text-xs text-slate-500 mt-0.5">
                     <input type="text" 
-                           value="${pole.short_name || ''}"
+                           value="${escapeHtml(pole.short_name || '')}"
                            placeholder="Code court"
                            class="w-24 border-0 bg-transparent hover:bg-white hover:border hover:border-slate-300 focus:bg-white focus:border focus:border-blue-500 rounded px-1 py-0.5 text-xs transition-all"
                            data-wizard-action="update-pole-short-name" data-pole-index="${poleIndex}" />
@@ -368,7 +374,7 @@
                 <div class="flex items-center gap-2 text-xs text-slate-600">
                   <span>•</span>
                   <input type="text" 
-                         value="${svc.name}"
+                         value="${escapeHtml(svc.name)}"
                          data-structure-field="service:${poleIndex}:${svcIndex}"
                          class="flex-1 border-0 bg-transparent hover:bg-white hover:border hover:border-slate-300 focus:bg-white focus:border focus:border-blue-500 rounded px-2 py-0.5 text-xs transition-all"
                          data-wizard-action="update-service-name" data-pole-index="${poleIndex}" data-service-index="${svcIndex}" />
@@ -504,7 +510,7 @@
           serviceCard.innerHTML = `
             <div class="flex items-center justify-between mb-2">
               <div>
-                <span class="text-sm font-semibold text-slate-900">${pole.name} › ${service.name}</span>
+                <span class="text-sm font-semibold text-slate-900">${escapeHtml(pole.name)} › ${escapeHtml(service.name)}</span>
                 <span class="ml-2 text-xs text-slate-500">(${ufs.length} UF)</span>
               </div>
               <button type="button" class="text-xs text-indigo-600 hover:text-indigo-800" data-wizard-action="add-uf" data-pole-index="${poleIndex}" data-service-index="${serviceIndex}">
@@ -515,11 +521,11 @@
               ${ufs.map((uf, ufIndex) => `
                 <div class="flex items-center gap-2 text-xs">
                   <span class="text-slate-600">•</span>
-                  <input type="text" value="${uf.name || ''}" placeholder="Nom UF" 
+                  <input type="text" value="${escapeHtml(uf.name || '')}" placeholder="Nom UF"
                          data-structure-field="uf:${poleIndex}:${serviceIndex}:${ufIndex}"
                          class="flex-1 border border-slate-300 rounded px-2 py-1 text-xs"
                          data-wizard-action="update-uf-name" data-pole-index="${poleIndex}" data-service-index="${serviceIndex}" data-uf-index="${ufIndex}" />
-                  <input type="text" value="${uf.code_um || ''}" placeholder="Code UM" 
+                  <input type="text" value="${escapeHtml(uf.code_um || '')}" placeholder="Code UM"
                          class="w-24 border border-slate-300 rounded px-2 py-1 text-xs"
                          data-wizard-action="update-uf-code" data-pole-index="${poleIndex}" data-service-index="${serviceIndex}" data-uf-index="${ufIndex}" />
                   <select class="border border-slate-300 rounded px-2 py-1 text-xs"
@@ -618,7 +624,7 @@
         uhCard.innerHTML = `
           <div class="flex items-center justify-between">
             <div>
-              <span class="text-sm font-semibold text-slate-900">${uh.name}</span>
+              <span class="text-sm font-semibold text-slate-900">${escapeHtml(uh.name)}</span>
               <span class="ml-2 text-xs text-slate-500">(${uh.chambres || 0} chambres, ${uh.lits || 0} lits)</span>
             </div>
             <button type="button" class="text-xs text-red-600 hover:text-red-800" data-wizard-action="remove-uh" data-uh-index="${index}">🗑️</button>
@@ -707,11 +713,11 @@
         <div class="mt-4 space-y-3">
           ${(templatePayload?.poles || []).map(pole => `
             <div class="border border-slate-200 rounded-lg p-3 bg-white">
-              <div class="font-semibold text-slate-900 mb-2">🏢 ${pole.name}</div>
+              <div class="font-semibold text-slate-900 mb-2">🏢 ${escapeHtml(pole.name)}</div>
               <div class="ml-4 space-y-1">
                 ${(pole.services || []).map(service => `
                   <div class="text-sm text-slate-700">
-                    • ${service.name} 
+                    • ${escapeHtml(service.name)}
                     <span class="text-xs text-slate-500">(${service.ufs?.length || 0} UF)</span>
                   </div>
                 `).join('')}

@@ -1,48 +1,55 @@
 """Routes d'administration protégées par rôles."""
-from fastapi import APIRouter, Depends
+import json
+
+from fastapi import APIRouter, Depends, Request
+from sqlmodel import select
+
 from app.auth import UserInDB, require_role, RoleChecker, get_current_user
+from app.models.users import LocalUser
 
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
 @router.get("/users")
-async def list_users(user: UserInDB = Depends(require_role("admin"))):
+async def list_users(request: Request, user: UserInDB = Depends(require_role("admin"))):
     """
     Liste tous les utilisateurs (admin only).
     
     Requires: role "admin"
     """
-    from app.auth import fake_users_db
-    
+    with request.app.state.session_factory() as session:
+        accounts = session.exec(select(LocalUser).order_by(LocalUser.username)).all()
     return {
         "users": [
             {
-                "id": u.id,
-                "username": u.username,
-                "email": u.email,
-                "roles": u.roles,
-                "is_active": u.is_active
+                "id": account.id,
+                "username": account.username,
+                "email": account.email,
+                "roles": json.loads(account.roles_json),
+                "is_active": account.is_active,
             }
-            for u in fake_users_db.values()
+            for account in accounts
         ]
     }
 
 
 @router.get("/stats")
-async def get_system_stats(user: UserInDB = Depends(RoleChecker(["admin", "moderator"]))):
+async def get_system_stats(request: Request, user: UserInDB = Depends(RoleChecker(["admin", "moderator"]))):
     """
     Récupère les statistiques système.
     
     Requires: role "admin" OR "moderator"
     """
+    with request.app.state.session_factory() as session:
+        accounts = session.exec(select(LocalUser)).all()
     return {
         "status": "ok",
         "user": user.username,
         "roles": user.roles,
         "stats": {
-            "total_users": 2,
-            "active_users": 2
+            "total_users": len(accounts),
+            "active_users": sum(account.is_active for account in accounts),
         }
     }
 

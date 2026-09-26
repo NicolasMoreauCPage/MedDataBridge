@@ -24,6 +24,27 @@ const selectedPatientIdInput = document.getElementById('selected-patient-id');
 confirmAssignBtn.disabled = true;
 selectedPatientIdInput.value = '';
 
+function patientResultCard(patient) {
+  const card = document.createElement('div');
+  card.className = 'p-2 hover:bg-emerald-50 rounded cursor-pointer patient-result';
+  card.dataset.patientId = String(patient.id ?? '');
+  card.dataset.patientName = `${patient.family || ''} ${patient.given || ''}`.trim();
+  const name = document.createElement('div');
+  name.className = 'font-semibold';
+  name.textContent = patient.family || '';
+  const given = document.createElement('span');
+  given.className = 'text-slate-700';
+  given.textContent = patient.given || '';
+  name.append(' ', given);
+  const details = document.createElement('div');
+  details.className = 'text-xs text-slate-500';
+  details.textContent = [
+    patient.identifier ? `IPP: ${patient.identifier}` : '', patient.birth_date || '', patient.gender || '',
+  ].filter(Boolean).join(' · ');
+  card.append(name, details);
+  return card;
+}
+
 searchInput.addEventListener('input', (e) => {
   clearTimeout(searchTimeout);
   const query = e.target.value.trim();
@@ -49,12 +70,7 @@ searchInput.addEventListener('input', (e) => {
       );
       if (patientSearchController !== controller) return;
       if (data.results && data.results.length > 0) {
-        searchResults.innerHTML = data.results.map(p => `
-          <div class=\"p-2 hover:bg-emerald-50 rounded cursor-pointer patient-result\" data-patient-id=\"${p.id}\" data-patient-name=\"${p.family} ${p.given || ''}\">
-            <div class=\"font-semibold\">${p.family} <span class=\"text-slate-700\">${p.given || ''}</span></div>
-            <div class=\"text-xs text-slate-500\">${p.identifier ? 'IPP: ' + p.identifier + ' · ' : ''}${p.birth_date || ''}${p.gender ? ' · ' + p.gender : ''}</div>
-          </div>
-        `).join('');
+        searchResults.replaceChildren(...data.results.map(patientResultCard));
         // Add click event listeners to patient results
         document.querySelectorAll('.patient-result').forEach(el => {
           el.addEventListener('click', () => {

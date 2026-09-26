@@ -423,15 +423,23 @@ Le produit possède déjà beaucoup plus de substance qu'un simple POC et ses te
 
 Une fois ces fondations posées, le découpage des cinq plus gros workflows métier et la normalisation des accès aux données donneront le meilleur retour sur investissement : moins de régressions, des tests plus rapides et une exploitation plus prévisible.
 
-## 10. Suivi de mise en œuvre — 25 septembre 2026
+## 10. Suivi de mise en œuvre — 26 septembre 2026
 
 Le mode LAN reste volontairement ouvert par défaut (`SECURITY_ENABLED=false`).
 Lorsque `SECURITY_ENABLED=true`, les routes JWT et la frontière globale
 d'authentification sont activées, les secrets sont contrôlés, un administrateur
-local est bootstrapé en BDD et la révocation JWT échoue fermée. Les sinks HTML
-signalés dans la cartographie et la saisie de cotations sont assainis. Les
-macros et workspaces historiques restants utilisant `|safe` ou `innerHTML`
-doivent encore être traités individuellement.
+local est bootstrapé en BDD et la révocation JWT échoue fermée. Les routes et
+les dépendances d'authentification utilisent désormais la configuration, la
+fabrique de sessions et le secret de **l'instance FastAPI concernée** : aucun
+compte factice ou réglage global ne contourne la base locale. En test, la
+révocation utilise uniquement un magasin éphémère isolé ; en exécution
+sécurisée normale Redis reste requis et l'indisponibilité refuse le jeton.
+
+Les sorties HTML des macros ne font plus appel à `|safe`. La documentation et
+les icônes passent par des fragments explicitement assainis, couverts par des
+tests. Les workspaces qui affichent des données API (structure, lits, alertes,
+import, analytics et métriques) utilisent `textContent` ou échappent leurs
+valeurs avant une structure HTML fixe.
 
 ### Lots 1 à 3 réalisés
 
@@ -443,6 +451,7 @@ doivent encore être traités individuellement.
 | AUD-08 | Les listes patients/dossiers sont paginées et comptées en SQL ; les détails de dossier évitent les requêtes répétées ; les statuts planifiés de structure et PDQm ne persistent plus d'écriture lors d'un GET. |
 | AUD-09 | La CI exécute Ruff, compilation, budgets de qualité et la totalité de `tests/unit` et `tests/integration`. La configuration pytest est unique. |
 | AUD-10 | Les fixtures ont été dédoublonnées : une seule initialisation SQL reste active, le faux module cache global a été supprimé et les seeds indispensables ne masquent plus leurs erreurs. |
+| AUD-11 | Les données API ne sont plus interpolées non échappées dans les workspaces traités ; les macros génériques n'acceptent plus de HTML arbitraire. Le rendu Markdown et les SVG internes sont filtrés par `app.utils.safe_html`, avec tests de régression. |
 | AUD-12 | Alembic est le chemin de schéma hors tests en mémoire ; les `ALTER TABLE`, indexes et DDL manuels de démarrage ont été retirés. |
 | AUD-13 | Les deux copies versionnées de `deployment/*/app` et le module API `zfd` obsolète ont été supprimés. Le bundle de déploiement est construit depuis `app/` canonique. |
 | AUD-14 | Les wheels versionnées et le rapport PAM généré de 63 Mio ont été retirés du checkout et ignorés ; ils restent récupérables dans l'historique Git jusqu'à une opération de purge dédiée. |

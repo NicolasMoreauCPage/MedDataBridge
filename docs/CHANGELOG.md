@@ -7,6 +7,25 @@ et ce projet respecte [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-09-26
+
+### 🔒 Sécurité activable
+
+- Les comptes locaux sont désormais la seule source d'authentification lorsque
+  `SECURITY_ENABLED=true`, avec bootstrap de l'administrateur en base.
+- Les secrets, jetons JWT, révocations et dépendances FastAPI utilisent la
+  configuration de leur instance applicative, sans état global partagé.
+- Les tests du mode sécurisé créent une base isolée et couvrent connexion,
+  rôles, expiration, révocation et rotation des jetons.
+
+### 🐛 Correctifs
+
+- Les rendus HTML issus de données API sont construits de façon sûre ou
+  échappés ; le Markdown et les SVG internes sont filtrés avant rendu.
+- Les tests UCD/LPP utilisent des mocks synchrones cohérents avec les services.
+- Les contrôles de couverture ne s'exécutent que lorsque `pytest --cov` est
+  réellement actif, afin de ne pas dépendre d'un rapport local obsolète.
+
 ## [1.1.0] - 2026-01-08
 
 ### ✨ Fonctionnalités

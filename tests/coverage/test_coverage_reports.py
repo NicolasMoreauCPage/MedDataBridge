@@ -20,6 +20,10 @@ class TestCoverageReports:
     @pytest.fixture(scope="session")
     def coverage_data(self):
         """Données de couverture collectées pendant les tests"""
+        if coverage.Coverage.current() is None:
+            pytest.skip(
+                "Mesure de couverture non active (utiliser pytest --cov=app pour exécuter ces contrôles)."
+            )
         cov = coverage.Coverage(
             branch=True,
             source=['app'],
@@ -314,4 +318,3 @@ if __name__ == "__main__":
     print(f"📈 Couverture totale: {metrics['coverage']['total']:.1f}%")
     print(f"🔀 Couverture branches: {metrics['coverage']['branch']:.1f}%")
     print(f"📝 Couverture lignes: {metrics['coverage']['line']:.1f}%")
-

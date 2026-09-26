@@ -93,6 +93,7 @@ def _mount_sqladmin(application: FastAPI, database_engine, app_settings: Setting
             user = authenticate_user(
                 str(form.get("username", "")).strip(),
                 str(form.get("password", "")),
+                session_factory=application.state.session_factory,
             )
             if not user or "admin" not in user.roles:
                 return False
@@ -305,6 +306,8 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     templates.env.filters["format_hl7_payload"] = format_hl7_payload
     templates.env.filters["fr_date"] = fr_date
     templates.env.filters["fr_datetime"] = fr_datetime
+    from app.utils.safe_html import sanitize_icon_svg
+    templates.env.filters["sanitize_icon_svg"] = sanitize_icon_svg
     # Également exposés comme globals pour pouvoir être passés en callable
     # (ex: macros/ui.html::inheritance_field(..., formatter=fr_date)).
     templates.env.globals["fr_date"] = fr_date
@@ -318,6 +321,10 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     app.state.session_factory = runtime_session_factory
     app.state.scheduler = scheduler
     app.state.cache = runtime_cache
+    # Les tests utilisent un stockage éphémère de révocations car Redis y est
+    # explicitement désactivé. En exécution sécurisée normale, Redis reste la
+    # source durable et une indisponibilité fait refuser le token.
+    app.state.token_blacklist = {} if app_settings.testing else None
 
     # Servir les fichiers statiques (CSS/JS)
     static_dir = str(Path(__file__).parent / "static")

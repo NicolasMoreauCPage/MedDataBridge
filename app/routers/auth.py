@@ -1,7 +1,7 @@
 """
 Router pour l'authentification JWT.
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm, HTTPBearer
 from pydantic import BaseModel
 from datetime import timedelta
@@ -42,7 +42,7 @@ class UserResponse(BaseModel):
 
 
 @router.post("/login", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     """
     Authentification et génération de tokens.
     
@@ -59,7 +59,11 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
           -d "username=admin&password=admin123"
         ```
     """
-    user = authenticate_user(form_data.username, form_data.password)
+    user = authenticate_user(
+        form_data.username,
+        form_data.password,
+        session_factory=request.app.state.session_factory,
+    )
     
     if not user:
         raise HTTPException(
@@ -72,12 +76,15 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username, "user_id": user.id, "roles": user.roles},
-        expires_delta=access_token_expires
+        expires_delta=access_token_expires,
+        runtime_settings=request.app.state.settings,
     )
     
     # Créer le refresh token
     refresh_token = create_refresh_token(
-        data={"sub": user.username, "user_id": user.id, "roles": user.roles}
+        data={"sub": user.username, "user_id": user.id, "roles": user.roles},
+        runtime_settings=request.app.state.settings,
+        session_factory=request.app.state.session_factory,
     )
     
     return Token(
@@ -88,7 +95,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 
 @router.post("/login/json", response_model=Token)
-async def login_json(login_data: LoginRequest):
+async def login_json(request: Request, login_data: LoginRequest):
     """
     Authentification avec JSON (alternative à OAuth2 form).
     
@@ -105,7 +112,11 @@ async def login_json(login_data: LoginRequest):
           -d '{"username": "admin", "password": "admin123"}'
         ```
     """
-    user = authenticate_user(login_data.username, login_data.password)
+    user = authenticate_user(
+        login_data.username,
+        login_data.password,
+        session_factory=request.app.state.session_factory,
+    )
     
     if not user:
         raise HTTPException(
@@ -116,11 +127,14 @@ async def login_json(login_data: LoginRequest):
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username, "user_id": user.id, "roles": user.roles},
-        expires_delta=access_token_expires
+        expires_delta=access_token_expires,
+        runtime_settings=request.app.state.settings,
     )
     
     refresh_token = create_refresh_token(
-        data={"sub": user.username, "user_id": user.id, "roles": user.roles}
+        data={"sub": user.username, "user_id": user.id, "roles": user.roles},
+        runtime_settings=request.app.state.settings,
+        session_factory=request.app.state.session_factory,
     )
     
     return Token(
@@ -136,7 +150,7 @@ class RefreshTokenRequest(BaseModel):
 
 
 @router.post("/refresh", response_model=Token)
-async def refresh_token_endpoint(request: RefreshTokenRequest):
+async def refresh_token_endpoint(http_request: Request, request: RefreshTokenRequest):
     """
     Rafraîchit un token d'accès avec rotation du refresh token.
     
@@ -160,27 +174,45 @@ async def refresh_token_endpoint(request: RefreshTokenRequest):
     
     try:
         # Décoder le refresh token
-        token_data = decode_token(request.refresh_token, expected_type="refresh")
+        token_data = decode_token(
+            request.refresh_token,
+            expected_type="refresh",
+            runtime_settings=http_request.app.state.settings,
+            cache=http_request.app.state.cache,
+            fallback_blacklist=http_request.app.state.token_blacklist,
+        )
         
         # Extraire le jti pour révocation
-        payload = jose_jwt.decode(request.refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jose_jwt.decode(
+            request.refresh_token,
+            http_request.app.state.settings.jwt_secret_key,
+            algorithms=[ALGORITHM],
+        )
         old_jti = payload.get("jti")
         
         # Révoquer l'ancien refresh token (le mettre en blacklist)
         if old_jti:
             ttl_seconds = REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
-            blacklist_token(old_jti, ttl_seconds)
+            blacklist_token(
+                old_jti,
+                ttl_seconds,
+                cache=http_request.app.state.cache,
+                fallback_blacklist=http_request.app.state.token_blacklist,
+            )
         
         # Créer un nouveau token d'accès
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
             data={"sub": token_data.username, "user_id": token_data.user_id, "roles": token_data.roles},
-            expires_delta=access_token_expires
+            expires_delta=access_token_expires,
+            runtime_settings=http_request.app.state.settings,
         )
         
         # Créer un NOUVEAU refresh token (rotation)
         new_refresh_token = create_refresh_token(
-            data={"sub": token_data.username, "user_id": token_data.user_id, "roles": token_data.roles}
+            data={"sub": token_data.username, "user_id": token_data.user_id, "roles": token_data.roles},
+            runtime_settings=http_request.app.state.settings,
+            session_factory=http_request.app.state.session_factory,
         )
         
         return Token(
@@ -199,6 +231,7 @@ async def refresh_token_endpoint(request: RefreshTokenRequest):
 
 @router.post("/logout")
 async def logout(
+    request: Request,
     token: str = Depends(HTTPBearer()),
     current_user: UserInDB = Depends(get_current_user)
 ):
@@ -210,7 +243,11 @@ async def logout(
     
     try:
         # Extraire le jti du token d'accès
-        payload = jose_jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jose_jwt.decode(
+            token.credentials,
+            request.app.state.settings.jwt_secret_key,
+            algorithms=[ALGORITHM],
+        )
         jti = payload.get("jti")
         
         if jti:
@@ -220,7 +257,12 @@ async def logout(
             ttl_seconds = max(0, int(exp - time.time()))
             
             # Ajouter à la blacklist
-            blacklist_token(jti, ttl_seconds)
+            blacklist_token(
+                jti,
+                ttl_seconds,
+                cache=request.app.state.cache,
+                fallback_blacklist=request.app.state.token_blacklist,
+            )
         
         return {"message": "Déconnexion réussie"}
     except Exception:

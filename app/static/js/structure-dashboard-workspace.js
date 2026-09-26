@@ -18,6 +18,16 @@ const structureStats = {
     lits: 0,
 };
 
+function escapeHtml(value) {
+    const node = document.createElement('span');
+    node.textContent = String(value ?? '');
+    return node.innerHTML;
+}
+
+function safeIdentifier(value) {
+    return Number.isInteger(Number(value)) ? String(Number(value)) : '';
+}
+
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
     initializeStructure();
@@ -170,13 +180,13 @@ function renderNode(node, level = 0, parentId = null) {
     const icon = getTypeIcon(node.type);
 
     let html = `
-        <div class="structure-node" data-node-id="${nodeId}" data-type="${node.type}" data-status="${node.status || ''}" data-parent="${parentId || ''}">
+        <div class="structure-node" data-node-id="${escapeHtml(nodeId)}" data-type="${escapeHtml(node.type)}" data-status="${escapeHtml(node.status || '')}" data-parent="${escapeHtml(parentId || '')}">
             <div class="flex items-center gap-2 py-1 px-2 rounded hover:bg-slate-50 cursor-pointer" 
                  style="padding-left: ${padding + 8}px"
-                 data-structure-action="select-node" data-node-type="${node.type}" data-node-id="${node.id}">
+                 data-structure-action="select-node" data-node-type="${escapeHtml(node.type)}" data-node-id="${safeIdentifier(node.id)}">
                 ${hasChildren ? `
                     <button type="button" class="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-slate-600"
-                            data-structure-action="toggle-node" data-tree-node-id="${nodeId}">
+                            data-structure-action="toggle-node" data-tree-node-id="${escapeHtml(nodeId)}">
                         <svg class="w-3 h-3 transform transition-transform ${expandedNodes.has(nodeId) ? 'rotate-90' : ''}"
                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -184,7 +194,7 @@ function renderNode(node, level = 0, parentId = null) {
                     </button>
                 ` : '<div class="w-4"></div>'}
                 <span class="w-5 text-xs">${icon}</span>
-                <span class="flex-1 truncate">${node.name}</span>
+                <span class="flex-1 truncate">${escapeHtml(node.name)}</span>
             </div>
     `;
 
@@ -283,11 +293,11 @@ function renderListView() {
         <tr class="hover:bg-slate-50">
             <td class="px-2 py-1 w-6">
                 <input type="checkbox" class="rounded border-slate-300 list-row-select" ${checked}
-                       data-type="${row.type}" data-id="${row.id}" aria-label="Sélectionner ${getTypeLabel(row.type)} ${row.name}">
+                       data-type="${escapeHtml(row.type)}" data-id="${safeIdentifier(row.id)}" aria-label="Sélectionner ${escapeHtml(getTypeLabel(row.type))} ${escapeHtml(row.name)}">
             </td>
-            <td class="px-2 py-1 text-slate-600"><button type="button" data-select-node data-type="${row.type}" data-id="${row.id}" class="text-left hover:text-blue-700">${getTypeLabel(row.type)}</button></td>
-            <td class="px-2 py-1 text-slate-900"><button type="button" data-select-node data-type="${row.type}" data-id="${row.id}" class="text-left hover:text-blue-700">${row.name}</button></td>
-            <td class="px-2 py-1 text-slate-500"><button type="button" data-select-node data-type="${row.type}" data-id="${row.id}" class="text-left hover:text-blue-700">${row.path}</button></td>
+            <td class="px-2 py-1 text-slate-600"><button type="button" data-select-node data-type="${escapeHtml(row.type)}" data-id="${safeIdentifier(row.id)}" class="text-left hover:text-blue-700">${escapeHtml(getTypeLabel(row.type))}</button></td>
+            <td class="px-2 py-1 text-slate-900"><button type="button" data-select-node data-type="${escapeHtml(row.type)}" data-id="${safeIdentifier(row.id)}" class="text-left hover:text-blue-700">${escapeHtml(row.name)}</button></td>
+            <td class="px-2 py-1 text-slate-500"><button type="button" data-select-node data-type="${escapeHtml(row.type)}" data-id="${safeIdentifier(row.id)}" class="text-left hover:text-blue-700">${escapeHtml(row.path)}</button></td>
         </tr>`;
     }).join('');
 
@@ -373,11 +383,11 @@ function renderCardsView() {
     });
 
     container.innerHTML = filtered.map(row => `
-        <button type="button" data-select-node data-type="${row.type}" data-id="${row.id}"
+        <button type="button" data-select-node data-type="${escapeHtml(row.type)}" data-id="${safeIdentifier(row.id)}"
                 class="flex flex-col items-start p-3 rounded-lg border border-slate-200 bg-white hover:border-blue-400 hover:shadow-sm text-left">
-            <div class="text-[10px] uppercase tracking-wide text-slate-400 mb-1">${getTypeLabel(row.type)}</div>
-            <div class="font-medium text-slate-900">${row.name}</div>
-            <div class="mt-1 text-[11px] text-slate-500 truncate w-full">${row.path}</div>
+            <div class="text-[10px] uppercase tracking-wide text-slate-400 mb-1">${escapeHtml(getTypeLabel(row.type))}</div>
+            <div class="font-medium text-slate-900">${escapeHtml(row.name)}</div>
+            <div class="mt-1 text-[11px] text-slate-500 truncate w-full">${escapeHtml(row.path)}</div>
         </button>
     `).join('');
 }
@@ -481,8 +491,8 @@ function renderDetails(details) {
             pathEl.innerHTML = path.map((node, index) => `
                 <button type="button"
                         class="inline-flex items-center text-xs text-slate-500 hover:text-blue-600"
-                        data-structure-action="select-node" data-node-type="${node.type}" data-node-id="${node.id}">
-                    ${node.name || getTypeLabel(node.type)}
+                        data-structure-action="select-node" data-node-type="${escapeHtml(node.type)}" data-node-id="${safeIdentifier(node.id)}">
+                    ${escapeHtml(node.name || getTypeLabel(node.type))}
                 </button>
             `).join('<span class="mx-1 text-slate-400">/</span>');
             pathEl.classList.remove('hidden');
@@ -509,7 +519,7 @@ function renderDetails(details) {
         <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
                 <dt class="text-sm font-medium text-slate-500">Identifiant</dt>
-                <dd class="mt-1">${details.identifier || '-'}</dd>
+                <dd class="mt-1">${escapeHtml(details.identifier || '-')}</dd>
             </div>
             <div>
                 <dt class="text-sm font-medium text-slate-500">Statut</dt>
@@ -531,11 +541,11 @@ function renderDetails(details) {
                 <dt class="text-sm font-medium text-slate-500">Localisation</dt>
                 <dd class="mt-1 text-sm text-slate-700">
                     ${[details.address_line1, details.address_line2, details.address_line3]
-                        .filter(Boolean).join('<br>') || ''}
+                        .filter(Boolean).map(escapeHtml).join('<br>') || ''}
                     ${details.address_postalcode || details.address_city ? '<br>' : ''}
-                    ${[details.address_postalcode, details.address_city].filter(Boolean).join(' ')}
-                    ${details.etage ? `<br>Étage : ${details.etage}` : ''}
-                    ${details.aile ? `<br>Aile : ${details.aile}` : ''}
+                    ${[details.address_postalcode, details.address_city].filter(Boolean).map(escapeHtml).join(' ')}
+                    ${details.etage ? `<br>Étage : ${escapeHtml(details.etage)}` : ''}
+                    ${details.aile ? `<br>Aile : ${escapeHtml(details.aile)}` : ''}
                 </dd>
             </div>
         `;
@@ -546,33 +556,33 @@ function renderDetails(details) {
         infoHtml += `
             <div>
                 <dt class="text-sm font-medium text-slate-500">FINESS</dt>
-                <dd class="mt-1">${details.finess || '-'}</dd>
+                <dd class="mt-1">${escapeHtml(details.finess || '-')}</dd>
             </div>
             <div>
                 <dt class="text-sm font-medium text-slate-500">Catégorie</dt>
-                <dd class="mt-1">${details.category_name || details.category_code || '-'}</dd>
+                <dd class="mt-1">${escapeHtml(details.category_name || details.category_code || '-')}</dd>
             </div>
         `;
     } else if (details.type === 'service') {
         infoHtml += `
             <div>
                 <dt class="text-sm font-medium text-slate-500">Type de service</dt>
-                <dd class="mt-1">${details.service_type || '-'}</dd>
+                <dd class="mt-1">${escapeHtml(details.service_type || '-')}</dd>
             </div>
             <div>
                 <dt class="text-sm font-medium text-slate-500">Typologie</dt>
-                <dd class="mt-1">${details.typology || '-'}</dd>
+                <dd class="mt-1">${escapeHtml(details.typology || '-')}</dd>
             </div>
         `;
     } else if (details.type === 'uf') {
         infoHtml += `
             <div>
                 <dt class="text-sm font-medium text-slate-500">Code UM</dt>
-                <dd class="mt-1">${details.um_code || '-'}</dd>
+                <dd class="mt-1">${escapeHtml(details.um_code || '-')}</dd>
             </div>
             <div>
                 <dt class="text-sm font-medium text-slate-500">Type d'unité</dt>
-                <dd class="mt-1">${details.uf_type || '-'}</dd>
+                <dd class="mt-1">${escapeHtml(details.uf_type || '-')}</dd>
             </div>
         `;
     } else if (details.type === 'uh') {
@@ -619,7 +629,7 @@ function renderDetails(details) {
     infoHtml += `
             <div class="md:col-span-2">
                 <dt class="text-sm font-medium text-slate-500">Description</dt>
-                <dd class="mt-1">${details.description || '-'}</dd>
+                <dd class="mt-1">${escapeHtml(details.description || '-')}</dd>
             </div>
         </dl>
     `;

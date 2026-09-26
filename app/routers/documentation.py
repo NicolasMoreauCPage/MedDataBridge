@@ -9,6 +9,7 @@ from markdown.extensions.toc import TocExtension
 from markdown.extensions.fenced_code import FencedCodeExtension
 from markdown.extensions.tables import TableExtension
 from markdown.extensions.codehilite import CodeHiliteExtension
+from app.utils.safe_html import sanitize_document_html
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +146,7 @@ def render_markdown(content: str) -> str:
         'nl2br',
         'sane_lists'
     ])
-    return md.convert(content)
+    return sanitize_document_html(md.convert(content))
 
 
 def render_markdown_with_toc(content: str) -> tuple[str, str]:
@@ -161,8 +162,8 @@ def render_markdown_with_toc(content: str) -> tuple[str, str]:
         'nl2br',
         'sane_lists'
     ])
-    html = md.convert(content)
-    toc_html = getattr(md, 'toc', '') or ''
+    html = sanitize_document_html(md.convert(content))
+    toc_html = sanitize_document_html(getattr(md, 'toc', '') or '')
     return html, toc_html
 
 

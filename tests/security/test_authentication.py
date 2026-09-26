@@ -17,33 +17,48 @@ from config.settings import Settings
 from app.auth import (
     authenticate_user, create_access_token, create_refresh_token,
     decode_token, get_current_user, require_role, RoleChecker,
-    UserInDB, Token, ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM,
+    UserInDB, Token, ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM,
     blacklist_token, is_token_blacklisted
 )
+from app.models.users import LocalUser
+
+
+ADMIN_PASSWORD = "administrateur-test-fort"
+USER_PASSWORD = "utilisateur-test-fort"
 
 
 @pytest.mark.security
 class TestAuthentication:
     """Tests de sécurité pour l'authentification"""
 
-    @pytest.fixture
-    def client(self):
+    @pytest.fixture(scope="class")
+    def client(self, tmp_path_factory):
         """Client d'une application dont la sécurité est explicitement activée."""
         application = create_app(Settings(
             testing=True,
             security_enabled=True,
+            database_url=f"sqlite:///{tmp_path_factory.mktemp('authentication') / 'authentication.db'}",
             secret_key="a" * 32,
             jwt_secret_key="b" * 32,
             bootstrap_admin_username="admin",
-            bootstrap_admin_password="administrateur-test-fort",
+            bootstrap_admin_password=ADMIN_PASSWORD,
         ))
+        from app.auth import get_password_hash
+        with application.state.session_factory() as session:
+            session.add(LocalUser(
+                username="user",
+                email="user@example.test",
+                password_hash=get_password_hash(USER_PASSWORD),
+                roles_json='["user"]',
+            ))
+            session.commit()
         return TestClient(application)
 
     def test_successful_login_admin(self, client):
         """Test connexion réussie avec compte admin"""
         response = client.post("/auth/login", data={
             "username": "admin",
-            "password": "admin"
+            "password": ADMIN_PASSWORD
         })
 
         assert response.status_code == 200
@@ -57,7 +72,7 @@ class TestAuthentication:
         """Test connexion réussie avec compte user"""
         response = client.post("/auth/login", data={
             "username": "user",
-            "password": "user"
+            "password": USER_PASSWORD
         })
 
         assert response.status_code == 200
@@ -91,7 +106,7 @@ class TestAuthentication:
         """Test connexion avec format JSON"""
         response = client.post("/auth/login/json", json={
             "username": "admin",
-            "password": "admin"
+            "password": ADMIN_PASSWORD
         })
 
         assert response.status_code == 200
@@ -110,7 +125,7 @@ class TestAuthentication:
         # Login d'abord
         login_response = client.post("/auth/login", data={
             "username": "admin",
-            "password": "admin"
+            "password": ADMIN_PASSWORD
         })
         token = login_response.json()["access_token"]
 
@@ -138,7 +153,8 @@ class TestAuthentication:
         # Créer un token expiré
         expired_token = create_access_token(
             data={"sub": "admin", "user_id": 1, "roles": ["admin"]},
-            expires_delta=timedelta(minutes=-10)  # Expiré il y a 10 minutes
+            expires_delta=timedelta(minutes=-10),  # Expiré il y a 10 minutes
+            runtime_settings=client.app.state.settings,
         )
 
         response = client.get("/auth/me", headers={
@@ -153,7 +169,7 @@ class TestAuthentication:
         # Login
         login_response = client.post("/auth/login", data={
             "username": "admin",
-            "password": "admin"
+            "password": ADMIN_PASSWORD
         })
         token = login_response.json()["access_token"]
 
@@ -181,7 +197,7 @@ class TestAuthentication:
         # Login initial
         login_response = client.post("/auth/login", data={
             "username": "admin",
-            "password": "admin"
+            "password": ADMIN_PASSWORD
         })
         initial_refresh_token = login_response.json()["refresh_token"]
 
@@ -220,7 +236,7 @@ class TestAuthentication:
         """Empêche l'utilisation d'un access token sur /auth/refresh."""
         login_response = client.post("/auth/login", data={
             "username": "admin",
-            "password": "admin"
+            "password": ADMIN_PASSWORD
         })
         access_token = login_response.json()["access_token"]
 
@@ -236,7 +252,7 @@ class TestAuthentication:
         # Login avec compte user (pas admin)
         login_response = client.post("/auth/login", data={
             "username": "user",
-            "password": "user"
+            "password": USER_PASSWORD
         })
         token = login_response.json()["access_token"]
 
@@ -253,7 +269,7 @@ class TestAuthentication:
         # Login avec compte admin
         login_response = client.post("/auth/login", data={
             "username": "admin",
-            "password": "admin"
+            "password": ADMIN_PASSWORD
         })
         token = login_response.json()["access_token"]
 
@@ -269,12 +285,12 @@ class TestAuthentication:
         """Test structure et contenu des tokens JWT"""
         login_response = client.post("/auth/login", data={
             "username": "admin",
-            "password": "admin"
+            "password": ADMIN_PASSWORD
         })
         token = login_response.json()["access_token"]
 
         # Décoder le token
-        payload = jose_jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jose_jwt.decode(token, client.app.state.settings.jwt_secret_key, algorithms=[ALGORITHM])
 
         # Vérifier la structure
         assert "sub" in payload  # Subject (username)
@@ -319,7 +335,7 @@ class TestAuthentication:
         # Login pour obtenir un token
         login_response = client.post("/auth/login", data={
             "username": "admin",
-            "password": "admin"
+            "password": ADMIN_PASSWORD
         })
         token = login_response.json()["access_token"]
 
@@ -350,7 +366,7 @@ class TestAuthentication:
         # Login
         login_response = client.post("/auth/login", data={
             "username": "admin",
-            "password": "admin"
+            "password": ADMIN_PASSWORD
         })
         token = login_response.json()["access_token"]
 
@@ -395,21 +411,21 @@ class TestAuthentication:
 
         # Test avec en-tête vide
         response = client.get(endpoint, headers={"Authorization": ""})
-        assert response.status_code == 403  # Changed from 401 to match actual behavior
+        assert response.status_code == 401
 
     def test_role_checker_multiple_roles(self, client):
         """Test RoleChecker avec plusieurs rôles autorisés"""
         # Login admin
         login_response = client.post("/auth/login", data={
             "username": "admin",
-            "password": "admin"
+            "password": ADMIN_PASSWORD
         })
         admin_token = login_response.json()["access_token"]
 
         # Login user
         login_response = client.post("/auth/login", data={
             "username": "user",
-            "password": "user"
+            "password": USER_PASSWORD
         })
         user_token = login_response.json()["access_token"]
 
@@ -438,15 +454,15 @@ class TestAuthentication:
         # Login admin
         admin_login = client.post("/auth/login", data={
             "username": "admin",
-            "password": "admin"
+            "password": ADMIN_PASSWORD
         })
         admin_token = admin_login.json()["access_token"]
 
         # Login user dans un nouveau client
-        user_client = TestClient(app)
+        user_client = TestClient(client.app)
         user_login = user_client.post("/auth/login", data={
             "username": "user",
-            "password": "user"
+            "password": USER_PASSWORD
         })
         user_token = user_login.json()["access_token"]
 
@@ -483,7 +499,7 @@ class TestAuthentication:
         # (pas de blocage permanent simulé)
         response = client.post("/auth/login", data={
             "username": "admin",
-            "password": "admin"
+            "password": ADMIN_PASSWORD
         })
         assert response.status_code == 200
 
@@ -494,7 +510,8 @@ class TestAuthentication:
         # Créer un token qui expire dans 1 seconde
         short_lived_token = create_access_token(
             data={"sub": "admin", "user_id": 1, "roles": ["admin"]},
-            expires_delta=timedelta(seconds=1)
+            expires_delta=timedelta(seconds=1),
+            runtime_settings=client.app.state.settings,
         )
 
         # Utiliser immédiatement - devrait fonctionner

@@ -36,6 +36,7 @@ def test_security_is_disabled_by_default_and_can_be_enabled():
             "SECURITY_ENABLED": "true",
             "SECRET_KEY": "a" * 32,
             "JWT_SECRET_KEY": "b" * 32,
+            "BOOTSTRAP_ADMIN_PASSWORD": "administrateur-test-fort",
         }
     ).security_enabled is True
 
@@ -44,7 +45,14 @@ def test_create_app_only_mounts_login_routes_when_security_is_enabled():
     from app.app import create_app
 
     local_app = create_app(Settings(testing=True, security_enabled=False))
-    secured_app = create_app(Settings(testing=True, security_enabled=True, secret_key="test-security-key"))
+    secured_app = create_app(Settings(
+        testing=True,
+        security_enabled=True,
+        secret_key="a" * 32,
+        jwt_secret_key="b" * 32,
+        bootstrap_admin_username="admin",
+        bootstrap_admin_password="administrateur-test-fort",
+    ))
 
     local_paths = {route.path for route in local_app.routes}
     secured_paths = {route.path for route in secured_app.routes}

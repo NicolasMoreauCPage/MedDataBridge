@@ -82,7 +82,7 @@
                 {% if doc_content %}
                 <nav class="doc-card p-5">
                     <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Sommaire</p>
-                    <div class="prose prose-sm max-w-none mt-2">{{ doc_toc|safe }}</div>
+                    <div class="prose prose-sm max-w-none mt-2">{{ doc_toc }}</div>
                 </nav>
                 {% endif %}
             </aside>
@@ -125,7 +125,7 @@
               <a href="/documentation#{{ current_doc.category }}" class="text-indigo-600 dark:text-indigo-400 hover:underline">{{ structure[current_doc.category].title }}</a> ›
               {{ doc_title }}
             </div>
-            {{ doc_content|safe }}
+            {{ doc_content }}
             <div class="flex justify-between gap-3 mt-8">
               {% if prev_doc %}
               <a href="{{ prev_doc.url }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600">← {{ prev_doc.title }}</a>
@@ -139,7 +139,7 @@
         </div>
         {% else %}
         <div class="markdown-content">
-            {{ index_content|safe }}
+            {{ index_content }}
         </div>
         {% endif %}
         </div>

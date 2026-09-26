@@ -77,13 +77,21 @@
     try {
       const data = await fetchJSON('/api/metrics/operations');
       // Build table
-      els.opsTableBody.innerHTML='';
+      els.opsTableBody.replaceChildren();
       const options=['Toutes'];
       let total=0, totalSuccess=0;
       Object.entries(data).forEach(([name,m])=>{
         total += m.count||0; totalSuccess += m.success_count||0;
         const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${name}</td><td>${m.count||0}</td><td>${m.success_count||0}</td><td>${m.error_count||0}</td><td>${m.count? pct((m.success_count||0)/m.count):'0%'}</td><td>${m.avg_duration?fmt(m.avg_duration):'0.0'}</td><td>${m.min_duration!==undefined&&m.min_duration!==Infinity?fmt(m.min_duration):'0.0'}</td><td>${m.max_duration?fmt(m.max_duration):'0.0'}</td>`;
+        [name, m.count || 0, m.success_count || 0, m.error_count || 0,
+          m.count ? pct((m.success_count || 0) / m.count) : '0%',
+          m.avg_duration ? fmt(m.avg_duration) : '0.0',
+          m.min_duration !== undefined && m.min_duration !== Infinity ? fmt(m.min_duration) : '0.0',
+          m.max_duration ? fmt(m.max_duration) : '0.0'].forEach((value) => {
+          const cell = document.createElement('td');
+          cell.textContent = String(value);
+          tr.appendChild(cell);
+        });
         els.opsTableBody.appendChild(tr);
         options.push(name);
       });

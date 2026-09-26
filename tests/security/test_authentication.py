@@ -496,23 +496,25 @@ class TestAuthentication:
 
     def test_brute_force_protection_simulation(self, client):
         """Test simulation de protection contre attaques par force brute"""
+        client.app.state.login_rate_limiter.clear(("testclient", "admin"))
+
         # Simuler plusieurs tentatives de login échouées
-        for _ in range(10):
+        for _ in range(5):
             response = client.post("/auth/login", data={
                 "username": "admin",
                 "password": "wrongpassword"
             })
-            # Dans un vrai système, après quelques échecs,
-            # il y aurait un délai ou un blocage
             assert response.status_code == 401
 
-        # Vérifier que le login correct fonctionne encore
-        # (pas de blocage permanent simulé)
+        # Le blocage temporaire s'applique aussi à une tentative avec le
+        # bon mot de passe : aucune vérification de secret ne doit être faite
+        # pendant la fenêtre de protection.
         response = client.post("/auth/login", data={
             "username": "admin",
             "password": ADMIN_PASSWORD
         })
-        assert response.status_code == 200
+        assert response.status_code == 429
+        assert int(response.headers["retry-after"]) > 0
 
     def test_token_expiration_handling(self, client):
         """Test gestion de l'expiration des tokens"""

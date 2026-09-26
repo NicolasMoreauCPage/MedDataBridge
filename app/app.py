@@ -54,6 +54,7 @@ from app.services.entity_events import register_entity_events
 from app.services.entity_events_structure import register_structure_entity_events
 from app.services.scheduler import BackgroundScheduler
 from app.services.cache_service import create_cache_service
+from app.services.login_rate_limiter import LoginRateLimiter
 from app.runtime import runners as runners_module
 
 
@@ -256,6 +257,7 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     app.state.session_factory = runtime_session_factory
     app.state.scheduler = scheduler
     app.state.cache = runtime_cache
+    app.state.login_rate_limiter = LoginRateLimiter()
     # Les tests utilisent un stockage éphémère de révocations car Redis y est
     # explicitement désactivé. En exécution sécurisée normale, Redis reste la
     # source durable et une indisponibilité fait refuser le token.

@@ -40,6 +40,20 @@ class UserResponse(BaseModel):
     is_active: bool
 
 
+def _login_key(request: Request, username: str) -> tuple[str, str]:
+    return request.app.state.login_rate_limiter.key_for(request, username)
+
+
+def _ensure_login_not_limited(request: Request, key: tuple[str, str]) -> None:
+    retry_after = request.app.state.login_rate_limiter.retry_after(key)
+    if retry_after is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Trop de tentatives de connexion. Réessayez ultérieurement.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+
 @router.post("/login", response_model=Token)
 async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     """
@@ -58,6 +72,8 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
           -d "username=admin&password=admin123"
         ```
     """
+    key = _login_key(request, form_data.username)
+    _ensure_login_not_limited(request, key)
     user = authenticate_user(
         form_data.username,
         form_data.password,
@@ -65,11 +81,13 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
     )
     
     if not user:
+        request.app.state.login_rate_limiter.record_failure(key)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Nom d'utilisateur ou mot de passe incorrect",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    request.app.state.login_rate_limiter.clear(key)
     
     # Créer le token d'accès
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -111,6 +129,8 @@ async def login_json(request: Request, login_data: LoginRequest):
           -d '{"username": "admin", "password": "admin123"}'
         ```
     """
+    key = _login_key(request, login_data.username)
+    _ensure_login_not_limited(request, key)
     user = authenticate_user(
         login_data.username,
         login_data.password,
@@ -118,10 +138,12 @@ async def login_json(request: Request, login_data: LoginRequest):
     )
     
     if not user:
+        request.app.state.login_rate_limiter.record_failure(key)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Nom d'utilisateur ou mot de passe incorrect",
         )
+    request.app.state.login_rate_limiter.clear(key)
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(

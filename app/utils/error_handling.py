@@ -63,6 +63,7 @@ def _error_response(
     message: str,
     details: Optional[Dict[str, Any]] = None,
     error_type: Optional[str] = None,
+    headers: Optional[Dict[str, str]] = None,
 ) -> JSONResponse:
     correlation_id = _correlation_id(request)
     response = JSONResponse(
@@ -74,6 +75,7 @@ def _error_response(
             error_type=error_type,
             correlation_id=correlation_id,
         ),
+        headers=headers,
     )
     if correlation_id:
         response.headers["X-Correlation-ID"] = correlation_id
@@ -175,6 +177,7 @@ async def http_exception_handler(
         code=f"HTTP_{exc.status_code}",
         message=str(exc.detail),
         error_type="HTTPException",
+        headers=dict(exc.headers or {}),
     )
 
 

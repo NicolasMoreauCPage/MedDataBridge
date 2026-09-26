@@ -98,6 +98,22 @@ class TestAuthentication:
         assert response.status_code == 401
         assert "incorrect" in response.json()["detail"].lower()
 
+    def test_login_is_rate_limited_after_repeated_failures(self, client):
+        for _ in range(5):
+            response = client.post("/auth/login", data={
+                "username": "rate-limit-test-user",
+                "password": "incorrect-password",
+            })
+            assert response.status_code == 401
+
+        response = client.post("/auth/login", data={
+            "username": "rate-limit-test-user",
+            "password": "incorrect-password",
+        })
+
+        assert response.status_code == 429
+        assert int(response.headers["retry-after"]) > 0
+
     def test_login_json_format(self, client):
         """Test connexion avec format JSON"""
         response = client.post("/auth/login/json", json={
